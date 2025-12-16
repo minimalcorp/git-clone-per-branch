@@ -1,4 +1,4 @@
-# git-clone-per-branch
+# gcpb
 
 CLI tool for cloning git repository per branch - alternative to git worktree
 
@@ -16,15 +16,15 @@ CLI tool for cloning git repository per branch - alternative to git worktree
 ### Global Installation (npm)
 
 ```bash
-npm install -g git-clone-per-branch
+npm install -g @minimalcorp/gcpb
 ```
 
 ### Local Development
 
 ```bash
 # Clone this repository
-git clone https://github.com/yourusername/git-clone-per-branch.git
-cd git-clone-per-branch
+git clone https://github.com/minimalcorp/gcpb.git
+cd gcpb
 
 # Install dependencies
 npm install

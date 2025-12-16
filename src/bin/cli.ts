@@ -41,7 +41,7 @@ program
 
       // 3. Success message
       logger.box(
-        `Initialized git-clone-per-branch\n\nRoot directory: ${rootDir}\n\nYou can now use "gcpb add" to clone repositories.`,
+        `Initialized gcpb\n\nRoot directory: ${rootDir}\n\nYou can now use "gcpb add" to clone repositories.`,
         'success'
       );
     } catch (error) {

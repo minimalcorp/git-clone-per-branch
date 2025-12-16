@@ -1,5 +1,5 @@
 {
-  "name": "git-clone-per-branch",
+  "name": "@minimalcorp/gcpb",
   "version": "0.1.0",
   "description": "CLI tool for cloning git repository per branch, alternative to git worktree",
   "type": "module",
