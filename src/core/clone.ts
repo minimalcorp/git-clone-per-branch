@@ -41,11 +41,16 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       await repoGit.fetch('origin', baseBranch);
     }
 
-    // 8. Execute: git checkout -b ${targetBranch} ${baseBranch}
-    // If base branch starts with origin/, use origin/branch format
-    const checkoutRef = options.baseBranch.startsWith('origin/') ? options.baseBranch : baseBranch;
+    // 8. Create new branch only if target branch is different from base branch
+    // If they are the same (e.g., working on default branch), skip branch creation
+    // as the branch is already checked out after clone
+    if (baseBranch !== options.targetBranch) {
+      const checkoutRef = options.baseBranch.startsWith('origin/')
+        ? options.baseBranch
+        : baseBranch;
 
-    await repoGit.checkoutBranch(options.targetBranch, checkoutRef);
+      await repoGit.checkoutBranch(options.targetBranch, checkoutRef);
+    }
 
     return {
       success: true,
