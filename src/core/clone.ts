@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import type { CloneOptions, CloneResult } from '../types/index.js';
 import { GCPBError } from '../types/index.js';
 import { parseGitUrl } from './url-parser.js';
-import { validateTargetPath } from '../utils/validators.js';
+import { validateTargetPath, sanitizeBranchName } from '../utils/validators.js';
 
 /**
  * Get the default branch name from the remote repository
@@ -27,7 +27,13 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     const parsed = parseGitUrl(options.cloneUrl);
 
     // 2. Construct target path: ${rootDir}/${owner}/${repo}/${targetBranch}
-    const targetPath = path.join(options.rootDir, parsed.owner, parsed.repo, options.targetBranch);
+    // Sanitize branch name to avoid nested directories (feat/xxx -> feat-xxx)
+    const targetPath = path.join(
+      options.rootDir,
+      parsed.owner,
+      parsed.repo,
+      sanitizeBranchName(options.targetBranch)
+    );
 
     // 3. Check if target directory exists (fail early)
     const pathValidation = await validateTargetPath(targetPath);

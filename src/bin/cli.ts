@@ -5,7 +5,7 @@ import { cloneRepository } from '../core/clone.js';
 import { openInVSCode } from '../core/vscode.js';
 import { Logger } from '../utils/logger.js';
 import { handleError } from '../utils/error-handler.js';
-import { checkGitInstalled } from '../utils/validators.js';
+import { checkGitInstalled, sanitizeBranchName } from '../utils/validators.js';
 import { findRoot, initializeConfig, cleanupEmptyDirectories } from '../core/config.js';
 import { scanRepositories } from '../core/repository-scanner.js';
 import fs from 'fs-extra';
@@ -144,8 +144,11 @@ program
       }
 
       // 3. Parse path argument
+      // Handle branch names with slashes (e.g., org/repo/feat/xxx)
       const pathParts = targetPath ? targetPath.split('/') : [];
-      const [org, repo, branch] = pathParts;
+      const [org, repo, ...branchParts] = pathParts;
+      // Join remaining parts and sanitize to match directory structure
+      const branch = branchParts.length > 0 ? sanitizeBranchName(branchParts.join('/')) : undefined;
 
       // 4. Hierarchical selection
       let selectedOrg = org;
@@ -191,8 +194,8 @@ program
 
       // 5. Build removal list
       const itemsToRemove: RemovalSelection[] = selectedBranches.map((b) => ({
-        path: path.join(rootDir, selectedOrg, selectedRepo, b),
-        label: `${selectedOrg}/${selectedRepo}/${b}`,
+        path: path.join(rootDir, selectedOrg, selectedRepo, sanitizeBranchName(b)),
+        label: `${selectedOrg}/${selectedRepo}/${b}`, // Display with original branch name
       }));
 
       // 6. Confirm deletion (unless --force)

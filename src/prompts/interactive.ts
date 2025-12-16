@@ -1,6 +1,6 @@
 import inquirer from 'inquirer';
 import type { CloneConfig } from '../types/index.js';
-import { validateGitUrl, validateBranchName } from '../utils/validators.js';
+import { validateGitUrl, validateBranchName, sanitizeBranchName } from '../utils/validators.js';
 import { parseGitUrl } from '../core/url-parser.js';
 import path from 'path';
 
@@ -59,7 +59,12 @@ export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig
 
   // Show confirmation of directory structure
   const parsed = parseGitUrl(answers.cloneUrl);
-  const targetPath = path.join(rootDir, parsed.owner, parsed.repo, answers.targetBranch);
+  const targetPath = path.join(
+    rootDir,
+    parsed.owner,
+    parsed.repo,
+    sanitizeBranchName(answers.targetBranch)
+  );
 
   console.log('');
   console.log(`Repository will be cloned to:`);

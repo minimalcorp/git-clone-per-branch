@@ -79,3 +79,19 @@ export function checkGitInstalled(): ValidationResult {
     };
   }
 }
+
+/**
+ * Sanitize branch name for use as directory name
+ * Replaces forward slashes with hyphens to avoid nested directories
+ *
+ * @param branchName - Git branch name (e.g., "feat/xxx", "main")
+ * @returns Sanitized directory name (e.g., "feat-xxx", "main")
+ *
+ * @example
+ * sanitizeBranchName("feat/xxx") // returns "feat-xxx"
+ * sanitizeBranchName("main") // returns "main"
+ * sanitizeBranchName("feature/login/auth") // returns "feature-login-auth"
+ */
+export function sanitizeBranchName(branchName: string): string {
+  return branchName.replace(/\//g, '-');
+}
