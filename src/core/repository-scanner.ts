@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { RepositoryInfo } from '../types/index.js';
-import { CPBError } from '../types/index.js';
+import { GCPBError } from '../types/index.js';
 
 const CONFIG_DIR = '.gcpb';
 
@@ -119,7 +119,7 @@ export async function scanRepositories(rootDir: string): Promise<RepositoryInfo[
 
     return repositories;
   } catch (error) {
-    throw new CPBError(
+    throw new GCPBError(
       'Failed to scan repositories',
       'Please check file system permissions',
       error instanceof Error ? error : undefined

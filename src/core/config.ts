@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { Config } from '../types/index.js';
-import { CPBError } from '../types/index.js';
+import { GCPBError } from '../types/index.js';
 
 const CONFIG_DIR = '.gcpb';
 const CONFIG_FILE = 'settings.json';
@@ -45,7 +45,7 @@ export async function findRoot(startDir: string = process.cwd()): Promise<string
       currentDir = parentDir;
     }
   } catch (error) {
-    throw new CPBError(
+    throw new GCPBError(
       'Failed to search for .gcpb directory',
       'Please check file system permissions',
       error instanceof Error ? error : undefined
@@ -65,7 +65,7 @@ export async function initializeConfig(targetDir: string = process.cwd()): Promi
     // Check if .gcpb already exists
     const exists = await fs.pathExists(gcpbPath);
     if (exists) {
-      throw new CPBError(
+      throw new GCPBError(
         '.gcpb directory already exists',
         `Remove ${gcpbPath} if you want to reinitialize`
       );
@@ -84,10 +84,10 @@ export async function initializeConfig(targetDir: string = process.cwd()): Promi
 
     return targetDir;
   } catch (error) {
-    if (error instanceof CPBError) {
+    if (error instanceof GCPBError) {
       throw error;
     }
-    throw new CPBError(
+    throw new GCPBError(
       'Failed to initialize configuration',
       'Please check write permissions for the current directory',
       error instanceof Error ? error : undefined
@@ -106,7 +106,7 @@ export async function loadConfig(rootDir: string): Promise<Config> {
 
     // Validate config structure
     if (!config.version) {
-      throw new CPBError(
+      throw new GCPBError(
         'Invalid configuration file',
         `Config at ${configPath} is missing version field`
       );
@@ -114,10 +114,10 @@ export async function loadConfig(rootDir: string): Promise<Config> {
 
     return config;
   } catch (error) {
-    if (error instanceof CPBError) {
+    if (error instanceof GCPBError) {
       throw error;
     }
-    throw new CPBError(
+    throw new GCPBError(
       'Failed to load configuration',
       'Run "gcpb init" to initialize configuration',
       error instanceof Error ? error : undefined

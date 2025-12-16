@@ -1,13 +1,13 @@
 import gitUrlParse from 'git-url-parse';
 import type { ParsedGitUrl } from '../types/index.js';
-import { CPBError } from '../types/index.js';
+import { GCPBError } from '../types/index.js';
 
 export function parseGitUrl(url: string): ParsedGitUrl {
   try {
     const parsed = gitUrlParse(url);
 
     if (!parsed.owner || !parsed.name) {
-      throw new CPBError(
+      throw new GCPBError(
         'Invalid Git URL format',
         'Please provide a valid Git URL in the format: https://github.com/user/repo.git or git@github.com:user/repo.git'
       );
@@ -23,10 +23,10 @@ export function parseGitUrl(url: string): ParsedGitUrl {
       fullUrl: url,
     };
   } catch (error) {
-    if (error instanceof CPBError) {
+    if (error instanceof GCPBError) {
       throw error;
     }
-    throw new CPBError(
+    throw new GCPBError(
       'Failed to parse Git URL',
       'Please provide a valid Git URL in the format: https://github.com/user/repo.git or git@github.com:user/repo.git',
       error instanceof Error ? error : undefined

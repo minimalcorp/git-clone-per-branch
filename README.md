@@ -41,7 +41,7 @@ npm link
 Simply run the command:
 
 ```bash
-cpb
+gcpb
 ```
 
 The CLI will guide you through:
@@ -72,7 +72,7 @@ For example:
 ## Example
 
 ```bash
-$ cpb
+$ gcpb
 ? Enter the Git repository URL: https://github.com/facebook/react.git
 ? Enter the base branch name: main
 ? Enter the new branch name: feat/new-hooks

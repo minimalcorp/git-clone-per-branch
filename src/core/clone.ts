@@ -2,7 +2,7 @@ import simpleGit from 'simple-git';
 import path from 'path';
 import fs from 'fs-extra';
 import type { CloneOptions, CloneResult } from '../types/index.js';
-import { CPBError } from '../types/index.js';
+import { GCPBError } from '../types/index.js';
 import { parseGitUrl } from './url-parser.js';
 import { validateTargetPath } from '../utils/validators.js';
 
@@ -17,7 +17,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     // 3. Check if target directory exists (fail early)
     const pathValidation = await validateTargetPath(targetPath);
     if (!pathValidation.valid) {
-      throw new CPBError(
+      throw new GCPBError(
         pathValidation.error || 'Target directory validation failed',
         'Please use a different branch name or remove the existing directory'
       );
@@ -52,7 +52,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       targetPath,
     };
   } catch (error) {
-    if (error instanceof CPBError) {
+    if (error instanceof GCPBError) {
       return {
         success: false,
         targetPath: '',
@@ -67,7 +67,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       return {
         success: false,
         targetPath: '',
-        error: new CPBError(
+        error: new GCPBError(
           'Directory already exists',
           'Please use a different branch name or remove the existing directory',
           error instanceof Error ? error : undefined
@@ -82,7 +82,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       return {
         success: false,
         targetPath: '',
-        error: new CPBError(
+        error: new GCPBError(
           'Authentication failed',
           'Please ensure your SSH key is configured or use HTTPS with credentials',
           error instanceof Error ? error : undefined
@@ -97,7 +97,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       return {
         success: false,
         targetPath: '',
-        error: new CPBError(
+        error: new GCPBError(
           'Repository not found',
           'Please check the repository URL and your access permissions',
           error instanceof Error ? error : undefined
@@ -109,7 +109,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       return {
         success: false,
         targetPath: '',
-        error: new CPBError(
+        error: new GCPBError(
           `Base branch "${options.baseBranch}" not found`,
           'Please check the branch name. Common branches: main, master, develop',
           error instanceof Error ? error : undefined
@@ -120,7 +120,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     return {
       success: false,
       targetPath: '',
-      error: new CPBError(
+      error: new GCPBError(
         'Failed to clone repository',
         'Please check the repository URL and your network connection',
         error instanceof Error ? error : undefined

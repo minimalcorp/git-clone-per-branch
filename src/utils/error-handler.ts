@@ -1,8 +1,8 @@
-import { CPBError } from '../types/index.js';
+import { GCPBError } from '../types/index.js';
 import { Logger } from './logger.js';
 
 export function handleError(error: unknown, logger: Logger): void {
-  if (error instanceof CPBError) {
+  if (error instanceof GCPBError) {
     logger.error(error.message);
     if (error.suggestion) {
       logger.info(`Suggestion: ${error.suggestion}`);

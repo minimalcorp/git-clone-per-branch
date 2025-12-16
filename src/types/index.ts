@@ -33,14 +33,14 @@ export interface VSCodeOptions {
   targetPath: string;
 }
 
-export class CPBError extends Error {
+export class GCPBError extends Error {
   constructor(
     message: string,
     public suggestion?: string,
     public originalError?: Error
   ) {
     super(message);
-    this.name = 'CPBError';
+    this.name = 'GCPBError';
   }
 }
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { Command } from 'commander';
 import { promptForCloneConfig } from '../prompts/interactive.js';
 import { promptForOrg, promptForRepo, promptForBranches } from '../prompts/remove.js';
