@@ -1,6 +1,6 @@
 {
   "name": "@minimalcorp/gcpb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI tool for cloning git repository per branch, alternative to git worktree",
   "type": "module",
   "bin": {
