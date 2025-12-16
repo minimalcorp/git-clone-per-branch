@@ -1,0 +1,34 @@
+# Source files
+src/
+tests/
+
+# Configuration files
+tsconfig.json
+tsup.config.ts
+eslint.config.js
+.prettierrc
+.prettierignore
+.vscode/
+
+# Development files
+*.md
+!README.md
+
+# Test and coverage
+coverage/
+*.test.ts
+*.spec.ts
+
+# Version control
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+.cache/

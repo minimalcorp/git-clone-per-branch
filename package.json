@@ -1,0 +1,70 @@
+{
+  "name": "git-clone-per-branch",
+  "version": "0.1.0",
+  "description": "CLI tool for cloning git repository per branch, alternative to git worktree",
+  "type": "module",
+  "bin": {
+    "cpb": "./dist/bin/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "git",
+    "clone",
+    "branch",
+    "worktree",
+    "cli",
+    "developer-tools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "boxen": "^8.0.1",
+    "chalk": "^5.4.1",
+    "commander": "^14.0.2",
+    "cross-spawn": "^7.0.6",
+    "fs-extra": "^11.2.0",
+    "git-url-parse": "^15.0.0",
+    "inquirer": "^12.4.0",
+    "ora": "^8.1.1",
+    "simple-git": "^3.30.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/cross-spawn": "^6.0.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/git-url-parse": "^9.0.3",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.50.0",
+    "vitest": "^2.1.8"
+  }
+}
