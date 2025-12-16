@@ -20,7 +20,7 @@ export interface CloneOptions {
   cloneUrl: string;
   baseBranch: string;
   targetBranch: string;
-  cwd: string;
+  rootDir: string; // changed from cwd
 }
 
 export interface CloneResult {
@@ -42,4 +42,23 @@ export class CPBError extends Error {
     super(message);
     this.name = 'CPBError';
   }
+}
+
+// Configuration interfaces
+export interface Config {
+  version: string;
+  createdAt?: string;
+}
+
+// Repository scanner interfaces
+export interface RepositoryInfo {
+  owner: string;
+  repo: string;
+  branches: string[];
+  fullPath: string;
+}
+
+export interface RemovalSelection {
+  path: string;
+  label: string;
 }

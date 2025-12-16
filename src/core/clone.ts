@@ -11,8 +11,8 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     // 1. Parse git URL to get owner and repo
     const parsed = parseGitUrl(options.cloneUrl);
 
-    // 2. Construct target path: ${cwd}/${owner}/${repo}/${targetBranch}
-    const targetPath = path.join(options.cwd, parsed.owner, parsed.repo, options.targetBranch);
+    // 2. Construct target path: ${rootDir}/${owner}/${repo}/${targetBranch}
+    const targetPath = path.join(options.rootDir, parsed.owner, parsed.repo, options.targetBranch);
 
     // 3. Check if target directory exists (fail early)
     const pathValidation = await validateTargetPath(targetPath);

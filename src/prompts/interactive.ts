@@ -14,7 +14,7 @@ interface ConfirmAnswers {
   confirm: boolean;
 }
 
-export async function promptForCloneConfig(): Promise<CloneConfig> {
+export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig> {
   const answers = await inquirer.prompt<PromptAnswers>([
     {
       type: 'input',
@@ -59,7 +59,7 @@ export async function promptForCloneConfig(): Promise<CloneConfig> {
 
   // Show confirmation of directory structure
   const parsed = parseGitUrl(answers.cloneUrl);
-  const targetPath = path.join(process.cwd(), parsed.owner, parsed.repo, answers.targetBranch);
+  const targetPath = path.join(rootDir, parsed.owner, parsed.repo, answers.targetBranch);
 
   console.log('');
   console.log(`Repository will be cloned to:`);
