@@ -1,10 +1,25 @@
-import simpleGit from 'simple-git';
+import simpleGit, { type SimpleGit } from 'simple-git';
 import path from 'path';
 import fs from 'fs-extra';
 import type { CloneOptions, CloneResult } from '../types/index.js';
 import { GCPBError } from '../types/index.js';
 import { parseGitUrl } from './url-parser.js';
 import { validateTargetPath } from '../utils/validators.js';
+
+/**
+ * Get the default branch name from the remote repository
+ */
+async function getDefaultBranch(git: SimpleGit): Promise<string> {
+  try {
+    // Get default branch from origin/HEAD
+    const result = await git.revparse(['--abbrev-ref', 'origin/HEAD']);
+    // Result format: "origin/main" -> extract "main"
+    return result.replace('origin/', '').trim();
+  } catch {
+    // Fallback: assume "main" if detection fails
+    return 'main';
+  }
+}
 
 export async function cloneRepository(options: CloneOptions): Promise<CloneResult> {
   try {
@@ -33,22 +48,35 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     // 6. Navigate into cloned repo
     const repoGit = simpleGit(targetPath);
 
-    // 7. Fetch base branch if it's a remote reference
+    // 7. Get the default branch name
+    const defaultBranch = await getDefaultBranch(repoGit);
+
+    // 8. Normalize base branch name (remove origin/ prefix if present)
     const baseBranch = options.baseBranch.replace(/^origin\//, '');
 
-    // Check if we need to fetch the base branch
-    if (options.baseBranch.startsWith('origin/')) {
-      await repoGit.fetch('origin', baseBranch);
-    }
+    // 9. Handle branch checkout based on scenario
+    if (baseBranch === options.targetBranch) {
+      // Case: base == target (working on existing branch)
 
-    // 8. Create new branch only if target branch is different from base branch
-    // If they are the same (e.g., working on default branch), skip branch creation
-    // as the branch is already checked out after clone
-    if (baseBranch !== options.targetBranch) {
-      const checkoutRef = options.baseBranch.startsWith('origin/')
-        ? options.baseBranch
-        : baseBranch;
+      if (baseBranch === defaultBranch) {
+        // Case A: Working on default branch
+        // The default branch is already checked out after clone, nothing to do
+      } else {
+        // Case B: Working on non-default branch
+        // Need to fetch and checkout the branch explicitly
+        await repoGit.fetch('origin', baseBranch);
+        await repoGit.checkout(baseBranch);
+      }
+    } else {
+      // Case: base != target (creating new branch from base)
 
+      // Fetch base branch if it's not the default
+      if (baseBranch !== defaultBranch) {
+        await repoGit.fetch('origin', baseBranch);
+      }
+
+      // Create new branch from base
+      const checkoutRef = baseBranch === defaultBranch ? baseBranch : `origin/${baseBranch}`;
       await repoGit.checkoutBranch(options.targetBranch, checkoutRef);
     }
 
