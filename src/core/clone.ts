@@ -22,13 +22,15 @@ async function getDefaultBranch(git: SimpleGit): Promise<string> {
 }
 
 export async function cloneRepository(options: CloneOptions): Promise<CloneResult> {
+  let targetPath = '';
+
   try {
     // 1. Parse git URL to get owner and repo
     const parsed = parseGitUrl(options.cloneUrl);
 
     // 2. Construct target path: ${rootDir}/${owner}/${repo}/${targetBranch}
     // Sanitize branch name to avoid nested directories (feat/xxx -> feat-xxx)
-    const targetPath = path.join(
+    targetPath = path.join(
       options.rootDir,
       parsed.owner,
       parsed.repo,
@@ -102,6 +104,16 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       targetPath,
     };
   } catch (error) {
+    // Cleanup: Remove cloned directory if clone succeeded but later steps failed
+    try {
+      if (await fs.pathExists(targetPath)) {
+        await fs.remove(targetPath);
+      }
+    } catch (cleanupError) {
+      // Ignore cleanup errors, prioritize original error
+      // Cleanup failure shouldn't hide the actual error
+    }
+
     if (error instanceof GCPBError) {
       return {
         success: false,
