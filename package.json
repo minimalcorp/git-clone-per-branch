@@ -3,6 +3,14 @@
   "version": "0.1.1",
   "description": "CLI tool for cloning git repository per branch, alternative to git worktree",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minimalcorp/git-clone-per-branch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/minimalcorp/git-clone-per-branch/issues"
+  },
+  "homepage": "https://github.com/minimalcorp/git-clone-per-branch#readme",
   "bin": {
     "gcpb": "./dist/bin/cli.js"
   },
