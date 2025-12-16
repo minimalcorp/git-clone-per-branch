@@ -9,18 +9,26 @@ import { checkGitInstalled, sanitizeBranchName } from '../utils/validators.js';
 import { findRoot, initializeConfig, cleanupEmptyDirectories } from '../core/config.js';
 import { scanRepositories } from '../core/repository-scanner.js';
 import fs from 'fs-extra';
-import path from 'path';
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
 import type { RemovalSelection } from '../types/index.js';
 
 const logger = new Logger();
+
+// Read version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf-8')
+) as { version: string };
 
 const program = new Command();
 
 program
   .name('gcpb')
   .description('Clone git repository per branch - alternative to git worktree')
-  .version('0.1.0');
+  .version(packageJson.version);
 
 // init command
 program
