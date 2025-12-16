@@ -11,6 +11,7 @@
 パッケージを初めて公開する際は、ローカル環境から手動で公開する必要があります。
 
 1. **npmにログイン**
+
    ```bash
    npm login
    ```
@@ -18,11 +19,13 @@
    ブラウザが開き、npmアカウントで認証します（Touch ID/Passkey可）。
 
 2. **ビルド**
+
    ```bash
    npm run build
    ```
 
 3. **公開**
+
    ```bash
    npm publish --access public
    ```
@@ -64,7 +67,7 @@
 
 ```yaml
 permissions:
-  id-token: write  # OIDC認証用（必須）
+  id-token: write # OIDC認証用（必須）
   contents: read
 
 jobs:
@@ -99,6 +102,7 @@ git push origin main --follow-tags
 ```
 
 GitHub Actionsが自動的に:
+
 1. テスト実行（`npm test`）
 2. Lint実行（`npm run lint`）
 3. バージョンチェック（タグとpackage.jsonの一致確認）
@@ -118,17 +122,20 @@ package.jsonの`files`フィールドで指定された内容のみが公開さ�
 ```
 
 ### 含まれるファイル:
+
 - `dist/` - ビルド済みJavaScript、型定義ファイル
   - `dist/bin/cli.js` - CLIエントリーポイント
   - `dist/index.js` / `dist/index.cjs` - ライブラリエントリーポイント
   - `dist/*.d.ts` - TypeScript型定義
 
 ### 自動的に含まれるファイル:
+
 - `package.json`
 - `README.md`
 - `LICENSE`
 
 ### 除外されるファイル（.npmignoreで設定）:
+
 - ソースファイル (`src/`, `tests/`)
 - 設定ファイル (`tsconfig.json`, `eslint.config.js`など)
 - 開発用ファイル (`.github/`, ログファイルなど)
@@ -136,83 +143,6 @@ package.jsonの`files`フィールドで指定された内容のみが公開さ�
 ---
 
 ## トラブルシューティング
-
-### 初回公開時のエラー
-
-#### エラー: OTPが必要
-```
-npm error code EOTP
-npm error This operation requires a one-time password
-```
-
-**原因**: 2要素認証（2FA）が有効
-**対処法**:
-1. npmアカウントでAuthenticator App（TOTP）を設定
-2. 認証アプリから6桁のコードを取得
-3. `npm publish --access public --otp=123456` で公開
-
-**Touch IDのみの場合**:
-- Touch ID/PasskeyはWebブラウザ用で、CLI公開には使えません
-- npmの設定でAuthenticator Appを追加してください
-- https://www.npmjs.com/settings/[username]/tfa
-
-#### エラー: アクセス権限エラー
-```
-npm ERR! code E403
-npm ERR! 403 Forbidden
-```
-
-**原因**: @minimalcorp organizationのメンバーでないか、権限不足
-**対処法**:
-- organizationのメンバーであることを確認: `npm org ls minimalcorp`
-- Developer以上の権限が必要
-
-#### エラー: パッケージ名が既に使用されている
-```
-npm ERR! code E409
-npm ERR! 409 Conflict
-```
-
-**原因**: 同じバージョンが既に公開済み
-**対処法**: package.jsonのバージョンを更新
-
-### GitHub Actionsでのエラー
-
-#### エラー: バージョン不一致
-```
-❌ Error: Version mismatch!
-   Git tag version: v0.2.0
-   package.json version: 0.1.0
-```
-
-**原因**: gitタグのバージョンとpackage.jsonのバージョンが一致していない
-**対処法**:
-- package.jsonのversionを確認・更新
-- 正しいバージョンのタグを作成し直す
-- 例: package.jsonが"0.2.0"なら、タグは"v0.2.0"にする
-
-#### エラー: Trusted Publishing認証エラー
-```
-npm ERR! code EUNAUTHENTICATED
-npm ERR! Unable to authenticate
-```
-
-**原因**: Trusted Publisherの設定が正しくない
-**対処法**:
-- npmjs.comのTrusted Publisher設定を確認
-- Workflow filename が正確か確認（`.yml`拡張子まで含む）
-- Repository名、Organization名が正確か確認（大文字小文字区別あり）
-- ワークフローに`id-token: write`パーミッションがあるか確認
-
-#### エラー: テストやlintの失敗
-```
-Error: Process completed with exit code 1.
-```
-
-**原因**: テストまたはlintが失敗
-**対処法**:
-- ローカルで`npm test`と`npm run lint`を実行して修正
-- 修正後、再度タグをpush（古いタグは削除）
 
 ### タグの削除と再作成
 
@@ -254,6 +184,7 @@ npm version major  # 0.1.0 → 1.0.0
 ```
 
 このコマンドは自動的に:
+
 1. package.jsonとpackage-lock.jsonのバージョンを更新
 2. git commitを作成
 3. git tagを作成（v0.2.0のような形式）
@@ -272,11 +203,13 @@ npm version major  # 0.1.0 → 1.0.0
 ### Trusted Publishing使用時
 
 ✅ **推奨事項**:
+
 - Trusted Publisherの設定を定期的に確認
 - Workflow filenameを厳密に管理
 - 不要なworkflowは削除
 
 ✅ **安全性**:
+
 - トークンが存在しないため漏洩リスクゼロ
 - 短命なOIDCトークン（ワークフロー実行時のみ有効）
 - Provenanceで出所証明が可能
@@ -284,16 +217,19 @@ npm version major  # 0.1.0 → 1.0.0
 ### Access Token使用時（非推奨）
 
 ⚠️ **必須事項**:
+
 - トークンは絶対にコードにコミットしない
 - GitHub Secretsに安全に保管
 - 定期的にトークンをローテーション（3-6ヶ月ごと）
 - 不要になったトークンは即座に削除
 
 ⚠️ **2要素認証**:
+
 - npmアカウントで2FAを有効化
 - Auth-only（推奨）またはAuth-and-writes
 
 ⚠️ **アクセス制限**:
+
 - トークンタイプは`Automation`を使用
 - 必要最小限の権限のみ付与
 
