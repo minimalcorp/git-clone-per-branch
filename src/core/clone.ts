@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import type { CloneOptions, CloneResult } from '../types/index.js';
 import { GCPBError } from '../types/index.js';
 import { parseGitUrl } from './url-parser.js';
-import { validateTargetPath, sanitizeBranchName } from '../utils/validators.js';
+import { validateTargetPath, sanitizeBranchName, validateRemoteBranchNotExists } from '../utils/validators.js';
 
 /**
  * Get the default branch name from the remote repository
@@ -53,6 +53,17 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
 
     // 6. Navigate into cloned repo
     const repoGit = simpleGit(targetPath);
+
+    // 6a. Validate: If creating a new local branch, ensure it doesn't exist on remote
+    if (options.baseBranch !== options.targetBranch) {
+      const branchValidation = await validateRemoteBranchNotExists(repoGit, options.targetBranch);
+      if (!branchValidation.valid) {
+        throw new GCPBError(
+          branchValidation.error || 'Remote branch validation failed',
+          'Please use a different local branch name or delete the remote branch first'
+        );
+      }
+    }
 
     // 7. Get the default branch name
     const defaultBranch = await getDefaultBranch(repoGit);

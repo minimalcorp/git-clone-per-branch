@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import fs from 'fs-extra';
+import type { SimpleGit } from 'simple-git';
 import type { ValidationResult } from '../types/index.js';
 
 export function validateGitUrl(url: string): ValidationResult {
@@ -94,4 +95,43 @@ export function checkGitInstalled(): ValidationResult {
  */
 export function sanitizeBranchName(branchName: string): string {
   return branchName.replace(/\//g, '-');
+}
+
+/**
+ * Validate that a branch name doesn't exist on remote
+ * Used when creating a new local branch from a different remote branch
+ * to prevent conflicts when pushing
+ *
+ * @param git - SimpleGit instance for the cloned repository
+ * @param branchName - Local branch name to check
+ * @returns ValidationResult indicating if the branch name is safe to use
+ *
+ * @example
+ * const result = await validateRemoteBranchNotExists(repoGit, "test");
+ * if (!result.valid) {
+ *   console.error(result.error);
+ * }
+ */
+export async function validateRemoteBranchNotExists(
+  git: SimpleGit,
+  branchName: string
+): Promise<ValidationResult> {
+  try {
+    const branchSummary = await git.branch();
+    const remoteBranches = branchSummary.all.filter((b) => b.startsWith('remotes/origin/'));
+    const fullRemoteName = `remotes/origin/${branchName}`;
+
+    if (remoteBranches.includes(fullRemoteName)) {
+      return {
+        valid: false,
+        error: `Remote branch "${branchName}" already exists. Cannot create a new local branch with the same name.`,
+      };
+    }
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Failed to check remote branches: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
 }
