@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { promptForCloneConfig } from '../prompts/interactive.js';
 import { promptForOrg, promptForRepo, promptForBranches } from '../prompts/remove.js';
+import { promptForOrg as promptForOrgOpen, promptForRepo as promptForRepoOpen, promptForBranch } from '../prompts/open.js';
 import { cloneRepository } from '../core/clone.js';
 import { openInVSCode } from '../core/vscode.js';
 import { Logger } from '../utils/logger.js';
@@ -246,6 +247,106 @@ program
 
       // 9. Success message
       logger.success(`Removed ${itemsToRemove.length} branch(es)`);
+    } catch (error) {
+      handleError(error, logger);
+      process.exit(1);
+    }
+  });
+
+// open command
+program
+  .command('open [path]')
+  .description('Open a cloned repository branch in VSCode')
+  .action(async (targetPath?: string) => {
+    try {
+      // 1. Find root directory
+      const rootDir = await findRoot();
+      if (!rootDir) {
+        logger.error('No .gcpb configuration found');
+        logger.info('Run "gcpb init" to initialize');
+        process.exit(1);
+      }
+
+      // 2. Scan repositories
+      logger.startSpinner('Scanning repositories...');
+      const repositories = await scanRepositories(rootDir);
+      logger.stopSpinner(true, 'Scan complete');
+
+      if (repositories.length === 0) {
+        logger.warn('No repositories found');
+        logger.info('Use "gcpb add" to clone repositories');
+        process.exit(0);
+      }
+
+      // 3. Parse path argument (org/repo/branch)
+      const pathParts = targetPath ? targetPath.split('/') : [];
+      const [org, repo, ...branchParts] = pathParts;
+      const branch = branchParts.length > 0 ? sanitizeBranchName(branchParts.join('/')) : undefined;
+
+      // 4. Hierarchical selection
+      let selectedOrg = org;
+      let selectedRepo = repo;
+      let selectedBranch: string;
+
+      // Select org if not provided
+      if (!selectedOrg) {
+        selectedOrg = await promptForOrgOpen(repositories);
+      }
+
+      // Filter repos by org
+      const orgRepos = repositories.filter((r) => r.owner === selectedOrg);
+      if (orgRepos.length === 0) {
+        logger.error(`No repositories found for organization: ${selectedOrg}`);
+        process.exit(1);
+      }
+
+      // Select repo if not provided
+      if (!selectedRepo) {
+        selectedRepo = await promptForRepoOpen(orgRepos);
+      }
+
+      // Find target repo
+      const targetRepoInfo = orgRepos.find((r) => r.repo === selectedRepo);
+      if (!targetRepoInfo) {
+        logger.error(`Repository not found: ${selectedOrg}/${selectedRepo}`);
+        process.exit(1);
+      }
+
+      // Select branch (single-select)
+      if (!branch) {
+        selectedBranch = await promptForBranch(targetRepoInfo.branches);
+      } else {
+        if (!targetRepoInfo.branches.includes(branch)) {
+          logger.error(`Branch not found: ${selectedOrg}/${selectedRepo}/${branch}`);
+          process.exit(1);
+        }
+        selectedBranch = branch;
+      }
+
+      // 5. Construct target path
+      const branchPath = path.join(rootDir, selectedOrg, selectedRepo, selectedBranch);
+
+      // 6. Verify directory exists
+      const exists = await fs.pathExists(branchPath);
+      if (!exists) {
+        logger.error(`Branch directory not found: ${branchPath}`);
+        process.exit(1);
+      }
+
+      // 7. Open in VSCode
+      logger.info(`Opening ${selectedOrg}/${selectedRepo}/${selectedBranch}...`);
+      const opened = await openInVSCode({ targetPath: branchPath });
+
+      if (opened) {
+        logger.success('Successfully opened in VSCode');
+        logger.box(
+          `Opened in VSCode:\n${selectedOrg}/${selectedRepo}/${selectedBranch}\n\nPath: ${branchPath}`,
+          'success'
+        );
+      } else {
+        logger.warn('VSCode not available. Please open manually:');
+        logger.info(`  cd ${branchPath}`);
+      }
     } catch (error) {
       handleError(error, logger);
       process.exit(1);
