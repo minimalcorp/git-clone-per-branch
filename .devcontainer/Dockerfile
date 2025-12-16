@@ -1,0 +1,50 @@
+# ステージ1: 各種ツールのインストール
+FROM node:20.19.3-bookworm AS base
+
+# 開発ツールのインストール
+RUN apt-get update && apt-get install -y \
+    openssh-client \
+    ca-certificates \
+    git \
+    curl \
+    wget \
+    vim \
+    less \
+    && rm -rf /var/lib/apt/lists/*
+
+# ステージ2: 最終イメージ
+FROM base
+
+# npm バージョン固定
+RUN npm install -g npm@10.8.2
+
+WORKDIR /workspace
+
+# node_modules ディレクトリの事前作成と所有権設定
+RUN mkdir -p /workspace/node_modules && chown node:node /workspace/node_modules
+
+# npm キャッシュディレクトリの事前作成と所有権設定
+RUN mkdir -p /home/node/.npm && chown -R node:node /home/node/.npm
+
+# nodeユーザーに切り替え
+USER node
+
+# uvパッケージマネージャーのインストール（Serena MCP用）
+USER root
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv && \
+    chmod 755 /usr/local/bin/uv && \
+    mv /root/.local/bin/uvx /usr/local/bin/uvx && \
+    chmod 755 /usr/local/bin/uvx
+USER node
+
+# Claude Code のインストール（nodeユーザーとして実行）
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Claude Code の初期設定
+RUN mkdir -p /home/node/.claude && \
+    echo '{"hasCompletedOnboarding": true}' > /home/node/.claude.json && \
+    echo '{"permissions": {"defaultMode": "bypassPermissions"}}' > /home/node/.claude/settings.json
+
+# claude コマンドエイリアス（関数形式で引数をpass through）
+RUN echo 'claude() { command claude --mcp-config /workspace/.devcontainer/.mcp.json "$@"; }' >> /home/node/.bashrc

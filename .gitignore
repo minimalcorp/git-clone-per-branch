@@ -34,3 +34,7 @@ Thumbs.db
 
 # for testing
 sandbox/
+
+# Claude
+
+.claude/settings.local.json

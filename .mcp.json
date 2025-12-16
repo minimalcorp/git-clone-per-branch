@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "figma": {
+      "type": "sse",
+      "url": "http://${MCP_FIGMA_HOSTNAME:-127.0.0.1}:3845/sse"
+    },
+    "serena": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "host",
+        "-v",
+        ".:/workspaces/projects",
+        "ghcr.io/oraios/serena:latest",
+        "serena-mcp-server",
+        "--transport",
+        "stdio"
+      ]
+    },
+    "github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "-e",
+        "GITHUB_TOOLSETS",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PAT}",
+        "GITHUB_TOOLSETS": "${GITHUB_TOOLSETS:-repos,issues,pull_requests,actions}"
+      }
+    }
+  }
+}

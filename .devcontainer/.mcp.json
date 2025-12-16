@@ -1,0 +1,28 @@
+{
+  "$comment": "Dev Container専用MCP設定 - Docker不使用方式",
+  "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "claude-code",
+        "--project",
+        "/workspace",
+        "--enable-web-dashboard=false"
+      ]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PAT}",
+        "X-MCP-Toolsets": "${GITHUB_TOOLSETS:-repos,issues,pull_requests,actions}"
+      }
+    }
+  }
+}
