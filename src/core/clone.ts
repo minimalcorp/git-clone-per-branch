@@ -49,7 +49,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
 
     // 5. Execute git clone to target directory
     const git = simpleGit();
-    await git.clone(options.cloneUrl, targetPath, ['--single-branch']);
+    await git.clone(options.cloneUrl, targetPath);
 
     // 6. Navigate into cloned repo
     const repoGit = simpleGit(targetPath);
