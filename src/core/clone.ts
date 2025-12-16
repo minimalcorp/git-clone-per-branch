@@ -57,12 +57,12 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     // 7. Get the default branch name
     const defaultBranch = await getDefaultBranch(repoGit);
 
-    // 8. Normalize base branch name (remove origin/ prefix if present)
+    // 8. Normalize remote branch name (remove origin/ prefix if present)
     const baseBranch = options.baseBranch.replace(/^origin\//, '');
 
     // 9. Handle branch checkout based on scenario
     if (baseBranch === options.targetBranch) {
-      // Case: base == target (working on existing branch)
+      // Case: remote == local (working on existing branch)
 
       if (baseBranch === defaultBranch) {
         // Case A: Working on default branch
@@ -74,14 +74,14 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
         await repoGit.checkout(baseBranch);
       }
     } else {
-      // Case: base != target (creating new branch from base)
+      // Case: remote != local (creating new local branch from remote)
 
-      // Fetch base branch if it's not the default
+      // Fetch remote branch if it's not the default
       if (baseBranch !== defaultBranch) {
         await repoGit.fetch('origin', baseBranch);
       }
 
-      // Create new branch from base
+      // Create new local branch from remote
       const checkoutRef = baseBranch === defaultBranch ? baseBranch : `origin/${baseBranch}`;
       await repoGit.checkoutBranch(options.targetBranch, checkoutRef);
     }

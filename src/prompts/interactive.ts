@@ -37,7 +37,7 @@ export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig
     {
       type: 'input',
       name: 'baseBranch',
-      message: 'Enter the base branch name:',
+      message: 'Enter the remote branch name:',
       default: 'main',
       validate: (input: string) => {
         // Allow origin/ prefix for remote branches
@@ -49,7 +49,7 @@ export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig
     {
       type: 'input',
       name: 'targetBranch',
-      message: 'Enter the new branch name:',
+      message: 'Enter the local branch name:',
       validate: (input: string) => {
         const validation = validateBranchName(input);
         return validation.valid || validation.error || 'Invalid branch name';

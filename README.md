@@ -6,7 +6,7 @@ CLI tool for cloning git repository per branch - alternative to git worktree
 
 - Clone repositories into an organized directory structure: `${owner}/${repo}/${branch}`
 - Interactive prompts for easy configuration
-- Automatically create new branches based on a base branch
+- Automatically create local branches based on a remote branch
 - Auto-open cloned repository in VSCode
 - Support for both HTTPS and SSH URLs
 - Built with TypeScript for type safety
@@ -50,18 +50,19 @@ The CLI will guide you through:
    - Example: `https://github.com/user/repo.git`
    - Example: `git@github.com:user/repo.git`
 
-2. **Base branch name**: The branch to base your new branch on
+2. **Remote branch name**: The remote branch to checkout from
    - Default: `main`
-   - Can use remote references: `origin/main`
+   - Refers to origin branches (e.g., main → origin/main, feat/xxx → origin/feat/xxx)
 
-3. **Target branch name**: The name of your new branch
+3. **Local branch name**: The name of your local working branch
    - Example: `feat/new-feature`
+   - Can be same as remote (work on existing) or different (create new)
 
 4. **Confirmation**: Review the target directory and confirm
 
 The repository will be cloned to:
 ```
-./${owner}/${repo}/${target-branch}/
+./${owner}/${repo}/${local-branch}/
 ```
 
 For example:
@@ -74,8 +75,8 @@ For example:
 ```bash
 $ gcpb
 ? Enter the Git repository URL: https://github.com/facebook/react.git
-? Enter the base branch name: main
-? Enter the new branch name: feat/new-hooks
+? Enter the remote branch name: main
+? Enter the local branch name: feat/new-hooks
 
 Repository will be cloned to:
   /Users/you/projects/facebook/react/feat-new-hooks
@@ -100,8 +101,8 @@ Repository will be cloned to:
 1. Parses the Git URL to extract owner/organization and repository name
 2. Creates the directory structure: `${cwd}/${owner}/${repo}/${branch}`
 3. Clones the repository to the target directory
-4. Creates and checks out a new branch based on the specified base branch
-   - Equivalent to: `git checkout -b ${targetBranch} ${baseBranch}`
+4. Creates and checks out a local branch based on the specified remote branch
+   - Equivalent to: `git checkout -b ${localBranch} origin/${remoteBranch}`
 5. Opens the directory in VSCode (if available)
 
 ## Why Use This?
