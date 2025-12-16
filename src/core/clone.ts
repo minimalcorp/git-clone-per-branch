@@ -109,7 +109,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       if (await fs.pathExists(targetPath)) {
         await fs.remove(targetPath);
       }
-    } catch (cleanupError) {
+    } catch {
       // Ignore cleanup errors, prioritize original error
       // Cleanup failure shouldn't hide the actual error
     }
