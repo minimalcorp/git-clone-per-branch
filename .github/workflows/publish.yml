@@ -62,6 +62,5 @@ jobs:
       - name: Publish to npm
         run: npm publish --provenance --access public
         env:
-          NODE_AUTH_TOKEN: ''  # Clear injected token to use OIDC
           NPM_CONFIG_PROVENANCE: true
         # Uses Trusted Publishing (OIDC) - no manual token needed
