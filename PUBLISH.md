@@ -59,10 +59,13 @@ GitタグをpushするだけでGitHub Actionsが自動的にnpmへ公開しま�
 
 3. **タグの作成とpush**
    ```bash
-   # package.jsonのバージョンと一致させる（vプレフィックス付き）
+   # ⚠️ 重要: package.jsonのバージョンと一致させる（vプレフィックス付き）
+   # package.json が "0.2.0" なら、タグは "v0.2.0"
    git tag v0.2.0
    git push origin v0.2.0
    ```
+
+   **⚠️ バージョンチェック**: GitHub Actionsは自動的にタグのバージョン（例: v0.2.0）とpackage.jsonのバージョン（例: 0.2.0）が一致しているか確認します。不一致の場合はエラーで停止します。
 
 4. **公開の確認**
    - GitHubの **Actions** タブでワークフローの進行状況を確認
@@ -107,6 +110,18 @@ package.jsonの`files`フィールドで指定された内容のみが公開さ�
    - Repository → Actions → 失敗したワークフロー → ジョブをクリック
 
 2. **よくあるエラー**
+
+   **エラー**: バージョン不一致
+   ```
+   ❌ Error: Version mismatch!
+      Git tag version: v0.2.0
+      package.json version: 0.1.0
+   ```
+   **原因**: gitタグのバージョンとpackage.jsonのバージョンが一致していない
+   **対処法**:
+   - package.jsonのversionを確認・更新
+   - 正しいバージョンのタグを作成し直す
+   - 例: package.jsonが"0.2.0"なら、タグは"v0.2.0"にする
 
    **エラー**: `npm ERR! code E403`
    ```
