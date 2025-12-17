@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import type { Config } from '../types/index.js';
+import type { Config, EditorPreferences } from '../types/index.js';
 import { GCPBError } from '../types/index.js';
 
 const CONFIG_DIR = '.gcpb';
@@ -120,6 +120,45 @@ export async function loadConfig(rootDir: string): Promise<Config> {
     throw new GCPBError(
       'Failed to load configuration',
       'Run "gcpb init" to initialize configuration',
+      error instanceof Error ? error : undefined
+    );
+  }
+}
+
+/**
+ * Saves the configuration to settings.json
+ */
+export async function saveConfig(rootDir: string, config: Config): Promise<void> {
+  try {
+    const configPath = path.join(rootDir, CONFIG_DIR, CONFIG_FILE);
+    await fs.writeJson(configPath, config, { spaces: 2 });
+  } catch (error) {
+    throw new GCPBError(
+      'Failed to save configuration',
+      'Please check write permissions for the .gcpb directory',
+      error instanceof Error ? error : undefined
+    );
+  }
+}
+
+/**
+ * Updates editor preferences in the configuration
+ */
+export async function updateEditorPreferences(
+  rootDir: string,
+  preferences: EditorPreferences
+): Promise<void> {
+  try {
+    const config = await loadConfig(rootDir);
+    config.editor = preferences;
+    await saveConfig(rootDir, config);
+  } catch (error) {
+    if (error instanceof GCPBError) {
+      throw error;
+    }
+    throw new GCPBError(
+      'Failed to update editor preferences',
+      'Please check your configuration file',
       error instanceof Error ? error : undefined
     );
   }

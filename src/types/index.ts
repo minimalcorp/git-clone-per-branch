@@ -48,7 +48,15 @@ export class GCPBError extends Error {
 export interface Config {
   version: string;
   createdAt?: string;
+  editor?: EditorPreferences;
 }
+
+export interface EditorPreferences {
+  autoOpen?: boolean | null; // null = ask every time, true = always open, false = never open
+  defaultEditor?: EditorType; // For future extensibility
+}
+
+export type EditorType = 'vscode' | 'cursor' | 'zed';
 
 // Repository scanner interfaces
 export interface RepositoryInfo {
