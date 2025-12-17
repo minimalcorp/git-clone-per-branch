@@ -2,7 +2,8 @@
 
 [![npm version](https://img.shields.io/npm/v/@minimalcorp/gcpb.svg)](https://www.npmjs.com/package/@minimalcorp/gcpb)
 [![npm downloads](https://img.shields.io/npm/dm/@minimalcorp/gcpb.svg)](https://www.npmjs.com/package/@minimalcorp/gcpb)
-[![CI Status](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/publish.yml/badge.svg)](https://github.com/minimalcorp/git-clone-per-branch/actions)
+[![CI Status](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/ci.yml)
+[![Publish Status](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/publish.yml/badge.svg)](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Simpler than git worktree. Works perfectly with dev containers.**
