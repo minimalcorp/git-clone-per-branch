@@ -1,6 +1,6 @@
 {
   "name": "@minimalcorp/gcpb",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Simple alternative to git worktree with full dev container support. Clone git repositories per branch with an interactive CLI. Perfect for parallel feature development.",
   "type": "module",
   "repository": {
