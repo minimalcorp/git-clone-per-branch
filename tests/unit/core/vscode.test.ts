@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { openInVSCode } from '../../../src/core/vscode.js';
+import { openInVSCode } from '../../../src/core/editor.js';
 import { spawn } from 'cross-spawn';
 
 vi.mock('cross-spawn');

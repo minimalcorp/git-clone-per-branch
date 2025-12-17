@@ -8,7 +8,7 @@ import {
   promptForBranch,
 } from '../prompts/open.js';
 import { cloneRepository } from '../core/clone.js';
-import { openInVSCode } from '../core/vscode.js';
+import { handleEditorOpening, openInVSCode } from '../core/editor.js';
 import { Logger } from '../utils/logger.js';
 import { terminalManager } from '../utils/terminal.js';
 import { handleError } from '../utils/error-handler.js';
@@ -131,16 +131,8 @@ program
       }
       logger.stopSpinner(true, 'Repository cloned successfully');
 
-      // 5. Open in VSCode
-      logger.info('Opening in VSCode...');
-      const opened = await openInVSCode({ targetPath: result.targetPath });
-
-      if (opened) {
-        logger.success('Successfully opened in VSCode');
-      } else {
-        logger.warn('VSCode not available. Please open manually:');
-        logger.info(`  cd ${result.targetPath}`);
-      }
+      // 5. Handle editor opening
+      await handleEditorOpening(result.targetPath, rootDir, logger);
 
       // 6. Show success message
       logger.box(
@@ -542,27 +534,8 @@ async function runInteractiveMode(): Promise<void> {
 
         logger.stopSpinner(true, 'Clone complete');
 
-        // Ask if user wants to open in VSCode
-        const { openInEditor } = await inquirer.prompt<{ openInEditor: boolean }>([
-          {
-            type: 'confirm',
-            name: 'openInEditor',
-            message: 'Open in VSCode?',
-            default: true,
-          },
-        ]);
-
-        if (openInEditor) {
-          logger.info(`Opening ${result.targetPath}...`);
-          const opened = await openInVSCode({ targetPath: result.targetPath });
-
-          if (opened) {
-            logger.success('Successfully opened in VSCode');
-          } else {
-            logger.warn('VSCode not available. Please open manually:');
-            logger.info(`  cd ${result.targetPath}`);
-          }
-        }
+        // Handle editor opening with preferences
+        await handleEditorOpening(result.targetPath, addRootDir, logger);
 
         logger.box(`Successfully cloned repository\n\nPath: ${result.targetPath}`, 'success');
         break;
