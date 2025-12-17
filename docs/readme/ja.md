@@ -2,7 +2,8 @@
 
 [![npm version](https://img.shields.io/npm/v/@minimalcorp/gcpb.svg)](https://www.npmjs.com/package/@minimalcorp/gcpb)
 [![npm downloads](https://img.shields.io/npm/dm/@minimalcorp/gcpb.svg)](https://www.npmjs.com/package/@minimalcorp/gcpb)
-[![CI Status](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/publish.yml/badge.svg)](https://github.com/minimalcorp/git-clone-per-branch/actions)
+[![CI Status](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/ci.yml)
+[![Publish Status](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/publish.yml/badge.svg)](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **git worktreeより簡単。開発コンテナでも完璧に動作。**
@@ -342,9 +343,18 @@ gcpb add
 
 ## 要件
 
-- Node.js >= 18.0.0
+- Node.js >= 20.12.0 (Active LTS バージョン 20、22、24を推奨)
 - PATHで利用可能なGit
 - VSCode（オプション、自動オープン機能用）
+
+### サポートされているNode.jsバージョン
+
+このパッケージは以下のNode.jsバージョンをサポートしています：
+- **Node.js 20.x**: >= 20.12.0 (2026年4月までメンテナンスLTS)
+- **Node.js 22.x**: 最新版 (2027年4月までメンテナンスLTS)
+- **Node.js 24.x**: 最新版 (2028年4月までActive LTS)
+
+最高のエクスペリエンスのために、最新のActive LTSバージョン（Node.js 24）の使用を推奨します。
 
 ## 設定
 
@@ -421,6 +431,27 @@ gcpb add
 `gcpb open`コマンドはVSCodeがインストールされている場合のみ動作しますが、他のすべての機能はどのエディタでも動作します。
 
 ## 開発
+
+### 開発環境
+
+このプロジェクトは開発にNode.js 24.12.0を使用しています。バージョンは以下を通じて固定されています：
+- `.node-version` ファイル (nvm、fnm、nodenv、asdf用)
+- Docker開発コンテナ (`.devcontainer/Dockerfile`)
+
+正しいバージョンを使用していることを確認するには：
+
+```bash
+# nvmの場合
+nvm use
+
+# fnmの場合
+fnm use
+
+# または手動で確認
+node --version  # v24.12.0 を出力するはずです
+```
+
+### 開発コマンド
 
 ```bash
 # 依存関係をインストール
