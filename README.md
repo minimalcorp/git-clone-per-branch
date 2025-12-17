@@ -346,9 +346,18 @@ gcpb add
 
 ## Requirements
 
-- Node.js >= 18.0.0
+- Node.js >= 20.12.0 (Active LTS versions 20, 22, or 24 recommended)
 - Git installed and available in PATH
 - VSCode (optional, for auto-open feature)
+
+### Supported Node.js Versions
+
+This package supports the following Node.js versions:
+- **Node.js 20.x**: >= 20.12.0 (Maintenance LTS until April 2026)
+- **Node.js 22.x**: Latest (Maintenance LTS until April 2027)
+- **Node.js 24.x**: Latest (Active LTS until April 2028)
+
+We recommend using the latest Active LTS version (Node.js 24) for the best experience.
 
 ## Configuration
 
@@ -425,6 +434,27 @@ Requirements:
 The `gcpb open` command only works if you have VSCode installed, but all other features work with any editor.
 
 ## Development
+
+### Development Environment
+
+This project uses Node.js 24.12.0 for development. The version is pinned via:
+- `.node-version` file (for nvm, fnm, nodenv, asdf)
+- Docker dev container (`.devcontainer/Dockerfile`)
+
+To ensure you're using the correct version:
+
+```bash
+# With nvm
+nvm use
+
+# With fnm
+fnm use
+
+# Or check manually
+node --version  # Should output v24.12.0
+```
+
+### Development Commands
 
 ```bash
 # Install dependencies
