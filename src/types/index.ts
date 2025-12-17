@@ -62,3 +62,18 @@ export interface RemovalSelection {
   path: string;
   label: string;
 }
+
+// Context detection interfaces
+export interface ContextInfo {
+  location: 'root' | 'owner' | 'repo' | 'branch' | 'outside';
+  owner?: string;
+  repo?: string;
+  availableRepos?: string[];
+  availableOwners?: string[];
+}
+
+export interface RemoteUrlResult {
+  found: boolean;
+  url?: string;
+  source?: string;
+}

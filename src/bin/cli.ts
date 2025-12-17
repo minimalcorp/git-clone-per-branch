@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { promptForCloneConfig } from '../prompts/interactive.js';
+import { promptForCloneConfigWithContext } from '../prompts/interactive.js';
 import { promptForOrg, promptForRepo, promptForBranches } from '../prompts/remove.js';
 import { promptForOrg as promptForOrgOpen, promptForRepo as promptForRepoOpen, promptForBranch } from '../prompts/open.js';
 import { cloneRepository } from '../core/clone.js';
@@ -86,7 +86,7 @@ program
       logger.info(`Root directory: ${rootDir}`);
 
       // 3. Prompt for configuration
-      const config = await promptForCloneConfig(rootDir);
+      const config = await promptForCloneConfigWithContext(rootDir);
 
       // 4. Clone repository
       logger.startSpinner('Cloning repository...');
