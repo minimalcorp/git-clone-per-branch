@@ -5,11 +5,15 @@
 [![CI Status](https://github.com/minimalcorp/git-clone-per-branch/actions/workflows/publish.yml/badge.svg)](https://github.com/minimalcorp/git-clone-per-branch/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**git worktreeより簡単。dev containerでも完璧に動作。**
+**Simpler than git worktree. Works perfectly with dev containers.**
 
 CLI tool for cloning git repositories per branch - a simple, dev container-friendly alternative to git worktree.
 
 <!-- ![gcpb Demo](docs/images/gcpb-demo.gif) -->
+
+## 📖 Available in Other Languages
+
+- [日本語 (Japanese)](docs/readme/ja.md)
 
 ## Why gcpb?
 
