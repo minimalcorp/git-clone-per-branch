@@ -4,7 +4,11 @@ import fs from 'fs-extra';
 import type { CloneOptions, CloneResult } from '../types/index.js';
 import { GCPBError } from '../types/index.js';
 import { parseGitUrl } from './url-parser.js';
-import { validateTargetPath, sanitizeBranchName, validateRemoteBranchNotExists } from '../utils/validators.js';
+import {
+  validateTargetPath,
+  sanitizeBranchName,
+  validateRemoteBranchNotExists,
+} from '../utils/validators.js';
 
 /**
  * Get the default branch name from the remote repository

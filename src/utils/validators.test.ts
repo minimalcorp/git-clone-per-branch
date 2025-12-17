@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert';
-import { sanitizeBranchName, validateBranchName, validateGitUrl } from './validators.js';
+import { sanitizeBranchName, validateBranchName, validateGitUrl } from './validators.ts';
 
 describe('validators', () => {
   describe('sanitizeBranchName', () => {

@@ -8,12 +8,6 @@ import { resolveRemoteUrl } from '../core/remote-resolver.js';
 import { detectDefaultBranch } from '../core/default-branch-detector.js';
 import path from 'path';
 
-interface PromptAnswers {
-  cloneUrl: string;
-  baseBranch: string;
-  targetBranch: string;
-}
-
 interface ConfirmAnswers {
   confirm: boolean;
 }
@@ -145,7 +139,11 @@ export async function promptForCloneConfigWithContext(rootDir: string): Promise<
   let repo: string | undefined = context.repo;
 
   // Step 1: Handle root directory case
-  if (context.location === 'root' && context.availableOwners && context.availableOwners.length > 0) {
+  if (
+    context.location === 'root' &&
+    context.availableOwners &&
+    context.availableOwners.length > 0
+  ) {
     const { mode } = await inquirer.prompt<{ mode: string }>([
       {
         type: 'list',
@@ -172,8 +170,10 @@ export async function promptForCloneConfigWithContext(rootDir: string): Promise<
       source: async (term) => {
         const searchTerm = term || '';
         return Promise.resolve(
-          context.availableOwners!
-            .filter((o: string) => o.toLowerCase().includes(searchTerm.toLowerCase()))
+          context
+            .availableOwners!.filter((o: string) =>
+              o.toLowerCase().includes(searchTerm.toLowerCase())
+            )
             .map((o: string) => ({ name: o, value: o }))
         );
       },
@@ -187,8 +187,10 @@ export async function promptForCloneConfigWithContext(rootDir: string): Promise<
         source: async (term) => {
           const searchTerm = term || '';
           return Promise.resolve(
-            ownerContext.availableRepos!
-              .filter((r: string) => r.toLowerCase().includes(searchTerm.toLowerCase()))
+            ownerContext
+              .availableRepos!.filter((r: string) =>
+                r.toLowerCase().includes(searchTerm.toLowerCase())
+              )
               .map((r: string) => ({ name: r, value: r }))
           );
         },
@@ -207,8 +209,10 @@ export async function promptForCloneConfigWithContext(rootDir: string): Promise<
       source: async (term) => {
         const searchTerm = term || '';
         return Promise.resolve(
-          context.availableRepos!
-            .filter((r: string) => r.toLowerCase().includes(searchTerm.toLowerCase()))
+          context
+            .availableRepos!.filter((r: string) =>
+              r.toLowerCase().includes(searchTerm.toLowerCase())
+            )
             .map((r: string) => ({ name: r, value: r }))
         );
       },

@@ -2,7 +2,11 @@ import { Command } from 'commander';
 import { search } from '@inquirer/prompts';
 import { promptForCloneConfigWithContext } from '../prompts/interactive.js';
 import { promptForOrg, promptForRepo, promptForBranches } from '../prompts/remove.js';
-import { promptForOrg as promptForOrgOpen, promptForRepo as promptForRepoOpen, promptForBranch } from '../prompts/open.js';
+import {
+  promptForOrg as promptForOrgOpen,
+  promptForRepo as promptForRepoOpen,
+  promptForBranch,
+} from '../prompts/open.js';
 import { cloneRepository } from '../core/clone.js';
 import { openInVSCode } from '../core/vscode.js';
 import { Logger } from '../utils/logger.js';
@@ -405,13 +409,29 @@ async function runInteractiveMode(): Promise<void> {
 
     const commands: CommandOption[] = hasConfig
       ? [
-          { name: 'add - Clone a repository branch', value: 'add', description: 'Clone a new branch' },
-          { name: 'rm - Remove cloned branches', value: 'rm', description: 'Remove existing branches' },
-          { name: 'open - Open a branch in VSCode', value: 'open', description: 'Open branch in editor' },
+          {
+            name: 'add - Clone a repository branch',
+            value: 'add',
+            description: 'Clone a new branch',
+          },
+          {
+            name: 'rm - Remove cloned branches',
+            value: 'rm',
+            description: 'Remove existing branches',
+          },
+          {
+            name: 'open - Open a branch in VSCode',
+            value: 'open',
+            description: 'Open branch in editor',
+          },
           { name: 'Exit', value: 'exit', description: 'Exit interactive mode' },
         ]
       : [
-          { name: 'init - Initialize .gcpb configuration', value: 'init', description: 'Setup gcpb' },
+          {
+            name: 'init - Initialize .gcpb configuration',
+            value: 'init',
+            description: 'Setup gcpb',
+          },
           { name: 'Exit', value: 'exit', description: 'Exit interactive mode' },
         ];
 
@@ -424,7 +444,10 @@ async function runInteractiveMode(): Promise<void> {
           const searchTerm = (term || '').toLowerCase();
           return Promise.resolve(
             commands
-              .filter((cmd) => cmd.name.toLowerCase().includes(searchTerm) || cmd.value.includes(searchTerm))
+              .filter(
+                (cmd) =>
+                  cmd.name.toLowerCase().includes(searchTerm) || cmd.value.includes(searchTerm)
+              )
               .map((cmd) => ({
                 name: cmd.name,
                 value: cmd.value,

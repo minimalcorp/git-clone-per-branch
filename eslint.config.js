@@ -22,6 +22,10 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
+    files: ['**/*.test.ts'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
     ignores: ['dist', 'node_modules', 'coverage', '*.config.js', '*.config.ts', 'sandbox'],
   }
 );
