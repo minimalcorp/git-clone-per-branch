@@ -10,7 +10,17 @@ RUN apt-get update && apt-get install -y \
     wget \
     vim \
     less \
+    locales \
     && rm -rf /var/lib/apt/lists/*
+
+# ロケール設定（日本語サポート）
+RUN sed -i -e 's/# ja_JP.UTF-8 UTF-8/ja_JP.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    locale-gen
+
+# 環境変数でロケール設定
+ENV LANG=ja_JP.UTF-8 \
+    LC_ALL=ja_JP.UTF-8
 
 # ステージ2: 最終イメージ
 FROM base
