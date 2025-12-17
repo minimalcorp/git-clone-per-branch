@@ -61,31 +61,6 @@
 
 これで、指定したGitHub Actionsワークフローから、トークンなしでパッケージを公開できるようになります。
 
-### ステップ3: ワークフローファイルの確認
-
-`.github/workflows/publish.yml`が以下の設定になっていることを確認してください:
-
-```yaml
-permissions:
-  id-token: write # OIDC認証用（必須）
-  contents: read
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18.x'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Publish to npm
-        run: npm publish --provenance --access public
-        # NPM_TOKEN不要 - Trusted Publishing (OIDC)を使用
-```
-
-**重要**: `NODE_AUTH_TOKEN`環境変数やシークレットは**不要**です。
-
 ### ステップ4: 2回目以降の公開（自動化）
 
 Trusted Publisher設定後は、gitタグをpushするだけで自動的にnpmに公開されます。
@@ -113,6 +88,7 @@ GitHub Actionsが自動的に:
 公開状況はGitHubの**Actions**タブで確認できます。
 
 **GitHub Releases**:
+
 - リリースページ: https://github.com/minimalcorp/git-clone-per-branch/releases
 - Changelogは前のタグから今のタグまでのコミットから自動生成されます
 - Conventional Commits形式（feat:, fix:など）に基づいて整理されます
@@ -155,6 +131,7 @@ package.jsonの`files`フィールドで指定された内容のみが公開さ�
 GitHub Actions のログを確認: https://github.com/minimalcorp/git-clone-per-branch/actions
 
 **よくあるエラーと対処法**:
+
 - ビルドエラー → 下記「シナリオ1」参照
 - `Resource not accessible by integration` → publish.yml の permissions を `contents: write` に変更
 - `could not determine previous tag` → checkout ステップに `fetch-depth: 0` を追加
@@ -168,6 +145,7 @@ GitHub Actions のログを確認: https://github.com/minimalcorp/git-clone-per-
 **状況**: タグを push したが GitHub Actions がエラーで失敗した
 
 **対処法**:
+
 ```bash
 # 1. タグを削除（ローカル + リモート）
 git tag -d v0.2.0
@@ -191,6 +169,7 @@ git push origin main --follow-tags
 **対処法（優先順）**:
 
 1. **パッチリリース（推奨）**:
+
    ```bash
    git add .
    git commit -m "fix: critical bug"
@@ -199,6 +178,7 @@ git push origin main --follow-tags
    ```
 
 2. **非推奨マーク（軽微な問題）**:
+
    ```bash
    npm deprecate @minimalcorp/gcpb@0.2.0 "Please upgrade to 0.2.1"
    ```
@@ -214,12 +194,14 @@ git push origin main --follow-tags
 ### シナリオ3: GitHub Release を削除
 
 **Release のみ削除**:
+
 ```bash
 gh release delete v0.2.0
 # または GitHub UI: Releases → Edit → Delete this release
 ```
 
 **Release + タグを削除**:
+
 ```bash
 gh release delete v0.2.0
 git push origin :refs/tags/v0.2.0
