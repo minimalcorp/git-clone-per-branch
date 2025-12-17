@@ -1,5 +1,5 @@
 # ステージ1: 各種ツールのインストール
-FROM node:20.19.3-bookworm AS base
+FROM node:24.12.0-bookworm AS base
 
 # 開発ツールのインストール
 RUN apt-get update && apt-get install -y \

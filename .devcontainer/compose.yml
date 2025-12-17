@@ -30,7 +30,7 @@ services:
 
   # 依存関係インストール専用サービス
   init:
-    image: node:20.19.3
+    image: node:24.12.0
     working_dir: /workspace
     volumes:
       # プロジェクトディレクトリ
@@ -39,7 +39,7 @@ services:
       - node-modules:/workspace/node_modules
       # npm キャッシュの永続化
       - npm-cache:/home/node/.npm
-    command: npm ci
+    command: npm ci --ignore-scripts
     profiles:
       - dev-container
     user: node

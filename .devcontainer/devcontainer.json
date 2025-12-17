@@ -72,15 +72,15 @@
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/home/node/.gitconfig,type=bind,readonly"
   ],
 
-  // コンテナ作成後コマンド（macOS固有のSSH設定を除外）
-  // "postCreateCommand": "mkdir -p ~/.ssh && cp -r /tmp/host-ssh/* ~/.ssh/ && (grep -v 'UseKeychain\\|AddKeysToAgent' ~/.ssh/config > ~/.ssh/config.new 2>/dev/null && mv ~/.ssh/config.new ~/.ssh/config || true) && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* 2>/dev/null || true",
-
   // 機能の追加
   "features": {
     "ghcr.io/devcontainers/features/git:1": {
       "version": "latest"
     }
   },
+
+  // コンテナ作成後の初期化コマンド
+  "postCreateCommand": "npm run prepare",
 
   // コンテナユーザー
   "remoteUser": "node"
