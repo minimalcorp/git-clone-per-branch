@@ -1,7 +1,7 @@
 {
   "name": "@minimalcorp/gcpb",
   "version": "0.3.0",
-  "description": "CLI tool for cloning git repository per branch, alternative to git worktree",
+  "description": "Simple alternative to git worktree with full dev container support. Clone git repositories per branch with an interactive CLI. Perfect for parallel feature development.",
   "type": "module",
   "repository": {
     "type": "git",
@@ -46,11 +46,22 @@
   },
   "keywords": [
     "git",
-    "clone",
-    "branch",
+    "git-clone",
+    "git-worktree",
     "worktree",
+    "worktree-alternative",
+    "branch",
+    "branch-management",
     "cli",
-    "developer-tools"
+    "developer-tools",
+    "vscode",
+    "dev-container",
+    "devcontainer",
+    "docker",
+    "interactive-cli",
+    "git-workflow",
+    "typescript",
+    "nodejs"
   ],
   "author": "",
   "license": "MIT",
