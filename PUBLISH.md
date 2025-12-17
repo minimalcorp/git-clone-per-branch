@@ -107,9 +107,15 @@ GitHub Actionsが自動的に:
 2. Lint実行（`npm run lint`）
 3. バージョンチェック（タグとpackage.jsonの一致確認）
 4. ビルド（`npm run build`）
-5. npmに公開（OIDC認証、Provenance付与）
+5. **GitHub Release作成（自動生成されたChangelog付き）**
+6. npmに公開（OIDC認証、Provenance付与）
 
 公開状況はGitHubの**Actions**タブで確認できます。
+
+**GitHub Releases**:
+- リリースページ: https://github.com/minimalcorp/git-clone-per-branch/releases
+- Changelogは前のタグから今のタグまでのコミットから自動生成されます
+- Conventional Commits形式（feat:, fix:など）に基づいて整理されます
 
 ---
 
@@ -159,6 +165,168 @@ git push origin :refs/tags/v0.2.0
 git tag v0.2.0
 git push origin v0.2.0
 ```
+
+### GitHub Release が作成されない場合
+
+**原因**:
+1. Permissions が `contents: read` のまま
+2. `fetch-depth: 0` が設定されていない
+3. ネットワークエラー
+
+**確認方法**:
+```bash
+# GitHub Actions のログを確認
+# https://github.com/minimalcorp/git-clone-per-branch/actions
+
+# エラーメッセージで原因を特定
+# - "Resource not accessible by integration" → Permissions エラー
+# - "could not determine previous tag" → fetch-depth エラー
+```
+
+**対処法**:
+1. `.github/workflows/publish.yml` の permissions を確認
+2. checkout ステップに `fetch-depth: 0` があるか確認
+3. 問題修正後、タグを削除して再 push
+
+---
+
+## リリースのロールバック
+
+リリース中に問題が発生した場合のロールバック手順です。
+
+### シナリオ1: GitHub Actions でビルドが失敗した場合
+
+**状況**: タグは push されたが、workflow がビルドエラーで失敗
+
+**対処法**:
+1. ローカルでビルドエラーを修正
+2. 同じバージョンで再リリース（タグを削除して再作成）
+
+```bash
+# ローカルのタグを削除
+git tag -d v0.2.0
+
+# リモートのタグを削除
+git push origin :refs/tags/v0.2.0
+
+# エラーを修正してコミット
+git add .
+git commit -m "fix: resolve build error"
+
+# 再度タグを作成
+npm version patch  # または手動で git tag v0.2.0
+
+# 再度 push
+git push origin main --follow-tags
+```
+
+**結果**: GitHub Actions が再実行され、正しくビルド → Release 作成 → npm publish
+
+---
+
+### シナリオ2: npm publish は成功したが、リリースに問題があった場合
+
+**状況**: パッケージが npm に公開されたが、重大なバグが見つかった
+
+**対処法**:
+1. **非推奨マーク** (軽微な問題の場合):
+   ```bash
+   npm deprecate @minimalcorp/gcpb@0.2.0 "This version has a critical bug. Please upgrade to 0.2.1."
+   ```
+
+2. **即座にパッチリリース** (推奨):
+   ```bash
+   # バグを修正
+   git add .
+   git commit -m "fix: critical bug in version 0.2.0"
+
+   # パッチバージョンを作成
+   npm version patch  # 0.2.0 → 0.2.1
+
+   # push してリリース
+   git push origin main --follow-tags
+   ```
+
+3. **パッケージの削除** (最終手段、公開後72時間以内のみ):
+   ```bash
+   # 特定のバージョンを削除
+   npm unpublish @minimalcorp/gcpb@0.2.0
+
+   # 警告: unpublish は24時間以内に再公開不可
+   # 可能な限り deprecate + パッチリリースを推奨
+   ```
+
+**注意**:
+- npm unpublish は公開後 72 時間以内のみ可能
+- unpublish したバージョンは 24 時間再公開できない
+- 可能な限り deprecate + パッチリリースを推奨
+
+---
+
+### シナリオ3: GitHub Release のみ削除したい場合
+
+**状況**: npm パッケージは問題ないが、GitHub Release のみ削除したい
+
+**対処法**:
+```bash
+# GitHub Release を削除（タグは残る）
+gh release delete v0.2.0
+
+# または GitHub UI から削除
+# 1. https://github.com/minimalcorp/git-clone-per-branch/releases へ移動
+# 2. 対象の Release の "Edit" をクリック
+# 3. 最下部の "Delete this release" をクリック
+```
+
+**注意**: Release を削除してもタグは残ります。タグも削除する場合は:
+```bash
+git push origin :refs/tags/v0.2.0
+```
+
+---
+
+### シナリオ4: 完全にリリースをなかったことにする
+
+**状況**: テスト目的で公開したバージョンを完全に削除したい
+
+**対処法**:
+```bash
+# 1. npm から削除（72時間以内のみ）
+npm unpublish @minimalcorp/gcpb@0.2.0
+
+# 2. GitHub Release を削除
+gh release delete v0.2.0
+# または GitHub UI から削除
+
+# 3. リモートのタグを削除
+git push origin :refs/tags/v0.2.0
+
+# 4. ローカルのタグを削除
+git tag -d v0.2.0
+```
+
+**警告**:
+- npm unpublish は公開後 72 時間以内のみ可能
+- unpublish したバージョンは 24 時間再公開できない
+- 本番リリースでは使用を避けること
+
+---
+
+### ロールバックのベストプラクティス
+
+1. **問題発見時**:
+   - 軽微な問題 → deprecate + パッチリリース（推奨）
+   - 重大な問題 → 即座にパッチリリース
+   - テスト版の削除 → 完全削除（72時間以内のみ）
+
+2. **予防策**:
+   - リリース前に十分なテストを実施
+   - 小さな変更を頻繁にリリース（問題の範囲を限定）
+   - セマンティックバージョニングを遵守
+
+3. **緊急時の連絡**:
+   - GitHub Issues で問題を報告
+   - README に警告を追加（次のパッチまでの暫定対応）
 
 ---
 

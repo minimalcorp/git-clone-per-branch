@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
 
 permissions:
-  contents: read
+  contents: write  # Changed from 'read' - needed for creating GitHub Releases
   id-token: write
 
 jobs:
@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -58,6 +60,33 @@ jobs:
 
       - name: Build package
         run: npm run build
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF_NAME#v}
+
+          # Get the previous tag for changelog generation
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found. This is the first release."
+            echo "Creating release without changelog comparison..."
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "v${VERSION}" \
+              --notes "Initial release of @minimalcorp/gcpb v${VERSION}"
+          else
+            echo "Previous tag: $PREVIOUS_TAG"
+            echo "Current tag: ${GITHUB_REF_NAME}"
+            echo "Creating release with generated changelog..."
+
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "v${VERSION}" \
+              --generate-notes \
+              --notes-start-tag "$PREVIOUS_TAG"
+          fi
 
       - name: Publish to npm
         run: npm publish --provenance --access public
