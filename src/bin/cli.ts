@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { search } from '@inquirer/prompts';
 import { promptForCloneConfigWithContext } from '../prompts/interactive.js';
 import { promptForOrg, promptForRepo, promptForBranches } from '../prompts/remove.js';
 import { promptForOrg as promptForOrgOpen, promptForRepo as promptForRepoOpen, promptForBranch } from '../prompts/open.js';
@@ -31,6 +32,19 @@ program
   .description('Clone git repository per branch - alternative to git worktree')
   .version(packageJson.version);
 
+// Helper function to check if error is a user cancellation
+function isCancellationError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
+      error.message.includes('User force closed') ||
+      error.message.includes('canceled') ||
+      error.message.includes('cancelled') ||
+      error.name === 'ExitPromptError'
+    );
+  }
+  return false;
+}
+
 // init command
 program
   .command('init')
@@ -54,6 +68,11 @@ program
         'success'
       );
     } catch (error) {
+      if (isCancellationError(error)) {
+        console.log('');
+        logger.info('Goodbye!');
+        process.exit(0);
+      }
       handleError(error, logger);
       process.exit(1);
     }
@@ -121,6 +140,11 @@ program
         'success'
       );
     } catch (error) {
+      if (isCancellationError(error)) {
+        console.log('');
+        logger.info('Goodbye!');
+        process.exit(0);
+      }
       handleError(error, logger);
       process.exit(1);
     }
@@ -248,6 +272,11 @@ program
       // 9. Success message
       logger.success(`Removed ${itemsToRemove.length} branch(es)`);
     } catch (error) {
+      if (isCancellationError(error)) {
+        console.log('');
+        logger.info('Goodbye!');
+        process.exit(0);
+      }
       handleError(error, logger);
       process.exit(1);
     }
@@ -348,9 +377,340 @@ program
         logger.info(`  cd ${branchPath}`);
       }
     } catch (error) {
+      if (isCancellationError(error)) {
+        console.log('');
+        logger.info('Goodbye!');
+        process.exit(0);
+      }
       handleError(error, logger);
       process.exit(1);
     }
   });
+
+/**
+ * Interactive mode - runs when gcpb is called without arguments
+ */
+async function runInteractiveMode(): Promise<void> {
+  try {
+    // Check if .gcpb exists
+    const rootDir = await findRoot();
+    const hasConfig = !!rootDir;
+
+    // Define available commands based on config existence
+    interface CommandOption {
+      name: string;
+      value: string;
+      description: string;
+    }
+
+    const commands: CommandOption[] = hasConfig
+      ? [
+          { name: 'add - Clone a repository branch', value: 'add', description: 'Clone a new branch' },
+          { name: 'rm - Remove cloned branches', value: 'rm', description: 'Remove existing branches' },
+          { name: 'open - Open a branch in VSCode', value: 'open', description: 'Open branch in editor' },
+          { name: 'Exit', value: 'exit', description: 'Exit interactive mode' },
+        ]
+      : [
+          { name: 'init - Initialize .gcpb configuration', value: 'init', description: 'Setup gcpb' },
+          { name: 'Exit', value: 'exit', description: 'Exit interactive mode' },
+        ];
+
+    // Show interactive prompt
+    let command: string;
+    try {
+      command = await search({
+        message: hasConfig ? 'Select a command:' : 'Initialize gcpb first:',
+        source: async (term) => {
+          const searchTerm = (term || '').toLowerCase();
+          return Promise.resolve(
+            commands
+              .filter((cmd) => cmd.name.toLowerCase().includes(searchTerm) || cmd.value.includes(searchTerm))
+              .map((cmd) => ({
+                name: cmd.name,
+                value: cmd.value,
+                description: cmd.description,
+              }))
+          );
+        },
+      });
+    } catch {
+      // User pressed Ctrl+C or cancelled the prompt
+      // @inquirer/prompts throws an error when user cancels
+      console.log(''); // Add blank line
+      logger.info('Goodbye!');
+      process.exit(0);
+    }
+
+    // Handle exit
+    if (command === 'exit') {
+      logger.info('Goodbye!');
+      process.exit(0);
+    }
+
+    // Execute selected command
+    console.log(''); // Add blank line for readability
+
+    switch (command) {
+      case 'init': {
+        // Check if .gcpb already exists
+        const existingRoot = await findRoot();
+        if (existingRoot) {
+          logger.error('.gcpb configuration already exists');
+          logger.info(`Found at: ${existingRoot}`);
+        } else {
+          // Initialize configuration
+          const newRootDir = await initializeConfig(process.cwd());
+          logger.box(
+            `Initialized gcpb\n\nRoot directory: ${newRootDir}\n\nYou can now use other commands to manage repositories.`,
+            'success'
+          );
+        }
+        break;
+      }
+
+      case 'add': {
+        // Check git is installed
+        logger.startSpinner('Checking prerequisites...');
+        const gitCheck = checkGitInstalled();
+        if (!gitCheck.valid) {
+          logger.stopSpinner(false, 'Git not found');
+          logger.error(gitCheck.error || 'Git is not installed');
+          break;
+        }
+        logger.stopSpinner(true, 'Prerequisites OK');
+
+        // Find root directory
+        const addRootDir = await findRoot();
+        if (!addRootDir) {
+          logger.error('No .gcpb configuration found');
+          logger.info('Run init first');
+          break;
+        }
+
+        logger.info(`Root directory: ${addRootDir}`);
+
+        // Prompt for configuration
+        const config = await promptForCloneConfigWithContext(addRootDir);
+
+        // Clone repository
+        logger.startSpinner('Cloning repository...');
+        const result = await cloneRepository({
+          ...config,
+          rootDir: addRootDir,
+        });
+
+        if (!result.success) {
+          logger.stopSpinner(false, 'Clone failed');
+          if (result.error) {
+            throw result.error;
+          }
+          break;
+        }
+
+        logger.stopSpinner(true, 'Clone complete');
+
+        // Ask if user wants to open in VSCode
+        const { openInEditor } = await inquirer.prompt<{ openInEditor: boolean }>([
+          {
+            type: 'confirm',
+            name: 'openInEditor',
+            message: 'Open in VSCode?',
+            default: true,
+          },
+        ]);
+
+        if (openInEditor) {
+          logger.info(`Opening ${result.targetPath}...`);
+          const opened = await openInVSCode({ targetPath: result.targetPath });
+
+          if (opened) {
+            logger.success('Successfully opened in VSCode');
+          } else {
+            logger.warn('VSCode not available. Please open manually:');
+            logger.info(`  cd ${result.targetPath}`);
+          }
+        }
+
+        logger.box(`Successfully cloned repository\n\nPath: ${result.targetPath}`, 'success');
+        break;
+      }
+
+      case 'rm': {
+        // Find root directory
+        const rmRootDir = await findRoot();
+        if (!rmRootDir) {
+          logger.error('No .gcpb configuration found');
+          logger.info('Run init first');
+          break;
+        }
+
+        // Scan repositories
+        logger.startSpinner('Scanning repositories...');
+        const repositories = await scanRepositories(rmRootDir);
+        logger.stopSpinner(true, 'Scan complete');
+
+        if (repositories.length === 0) {
+          logger.warn('No repositories found');
+          logger.info('Use add command to clone repositories');
+          break;
+        }
+
+        // Hierarchical selection
+        const selectedOrg = await promptForOrg(repositories);
+        const orgRepos = repositories.filter((r) => r.owner === selectedOrg);
+        const selectedRepo = await promptForRepo(orgRepos);
+        const targetRepo = orgRepos.find((r) => r.repo === selectedRepo);
+
+        if (!targetRepo) {
+          logger.error(`Repository not found: ${selectedOrg}/${selectedRepo}`);
+          break;
+        }
+
+        const selectedBranches = await promptForBranches(targetRepo.branches);
+
+        // Confirm deletion
+        console.log('');
+        console.log('The following branches will be removed:');
+        selectedBranches.forEach((branch) => {
+          console.log(`  - ${selectedOrg}/${selectedRepo}/${branch}`);
+        });
+        console.log('');
+
+        const { confirm } = await inquirer.prompt<{ confirm: boolean }>([
+          {
+            type: 'confirm',
+            name: 'confirm',
+            message: 'Are you sure you want to remove these branches?',
+            default: false,
+          },
+        ]);
+
+        if (!confirm) {
+          logger.info('Operation cancelled');
+          break;
+        }
+
+        // Remove branches
+        logger.startSpinner('Removing branches...');
+        for (const branch of selectedBranches) {
+          const branchPath = path.join(rmRootDir, selectedOrg, selectedRepo, branch);
+          await fs.remove(branchPath);
+        }
+        logger.stopSpinner(true, 'Removal complete');
+
+        // Cleanup empty directories
+        await cleanupEmptyDirectories(rmRootDir);
+
+        logger.success('Successfully removed branches');
+        logger.box(
+          `Removed ${selectedBranches.length} branch${selectedBranches.length === 1 ? '' : 'es'}\n\nOrganization: ${selectedOrg}\nRepository: ${selectedRepo}`,
+          'success'
+        );
+        break;
+      }
+
+      case 'open': {
+        // Find root directory
+        const openRootDir = await findRoot();
+        if (!openRootDir) {
+          logger.error('No .gcpb configuration found');
+          logger.info('Run init first');
+          break;
+        }
+
+        // Scan repositories
+        logger.startSpinner('Scanning repositories...');
+        const repositories = await scanRepositories(openRootDir);
+        logger.stopSpinner(true, 'Scan complete');
+
+        if (repositories.length === 0) {
+          logger.warn('No repositories found');
+          logger.info('Use add command to clone repositories');
+          break;
+        }
+
+        // Hierarchical selection
+        const selectedOrg = await promptForOrgOpen(repositories);
+        const orgRepos = repositories.filter((r) => r.owner === selectedOrg);
+
+        if (orgRepos.length === 0) {
+          logger.error(`No repositories found for organization: ${selectedOrg}`);
+          break;
+        }
+
+        const selectedRepo = await promptForRepoOpen(orgRepos);
+        const targetRepoInfo = orgRepos.find((r) => r.repo === selectedRepo);
+
+        if (!targetRepoInfo) {
+          logger.error(`Repository not found: ${selectedOrg}/${selectedRepo}`);
+          break;
+        }
+
+        const selectedBranch = await promptForBranch(targetRepoInfo.branches);
+        const branchPath = path.join(openRootDir, selectedOrg, selectedRepo, selectedBranch);
+
+        // Verify directory exists
+        const exists = await fs.pathExists(branchPath);
+        if (!exists) {
+          logger.error(`Branch directory not found: ${branchPath}`);
+          break;
+        }
+
+        // Open in VSCode
+        logger.info(`Opening ${selectedOrg}/${selectedRepo}/${selectedBranch}...`);
+        const opened = await openInVSCode({ targetPath: branchPath });
+
+        if (opened) {
+          logger.success('Successfully opened in VSCode');
+          logger.box(
+            `Opened in VSCode:\n${selectedOrg}/${selectedRepo}/${selectedBranch}\n\nPath: ${branchPath}`,
+            'success'
+          );
+        } else {
+          logger.warn('VSCode not available. Please open manually:');
+          logger.info(`  cd ${branchPath}`);
+        }
+        break;
+      }
+    }
+
+    // Return to interactive mode (loop)
+    console.log(''); // Add blank line
+    await runInteractiveMode();
+  } catch (error) {
+    // Check if it's a cancellation error (user pressed Ctrl+C during command execution)
+    if (error instanceof Error) {
+      // Common cancellation errors from inquirer
+      const isCancellation =
+        error.message.includes('User force closed') ||
+        error.message.includes('canceled') ||
+        error.message.includes('cancelled') ||
+        error.name === 'ExitPromptError';
+
+      if (isCancellation) {
+        console.log(''); // Add blank line
+        logger.info('Goodbye!');
+        process.exit(0);
+      }
+    }
+
+    handleError(error, logger);
+    // Return to interactive mode even on error
+    console.log('');
+    await runInteractiveMode();
+  }
+}
+
+// Handle Ctrl+C gracefully
+process.on('SIGINT', () => {
+  console.log(''); // Add blank line
+  logger.info('Goodbye!');
+  process.exit(0);
+});
+
+// Set default action for no arguments (interactive mode)
+program.action(async () => {
+  await runInteractiveMode();
+});
 
 program.parse();
