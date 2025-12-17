@@ -61,31 +61,51 @@
 
 これで、指定したGitHub Actionsワークフローから、トークンなしでパッケージを公開できるようになります。
 
-### ステップ4: 2回目以降の公開（自動化）
+### ステップ4: 2回目以降の公開
 
-Trusted Publisher設定後は、gitタグをpushするだけで自動的にnpmに公開されます。
+Trusted Publisher設定後は、2つの方法でリリースできます。
+
+#### 方法1: GitHub Actions から実行（推奨）
+
+1. GitHub のリポジトリページへ移動
+2. **Actions** タブをクリック
+3. 左サイドバーから **Release** ワークフローを選択
+4. **Run workflow** ボタンをクリック
+5. バージョンタイプを選択:
+   - **patch**: バグ修正（0.3.0 → 0.3.1）
+   - **minor**: 新機能（0.3.0 → 0.4.0）
+   - **major**: 破壊的変更（0.3.0 → 1.0.0）
+6. **Run workflow** をクリック
+
+ワークフローが自動的に:
+
+1. CI チェック実行（format, lint, type-check, build, test）
+2. package.json のバージョン更新
+3. Git commit と tag 作成
+4. main ブランチへ push
+5. publish.yml を自動トリガー
+   - バージョン検証
+   - GitHub Release 作成（Changelog 自動生成）
+   - npm へ公開（Provenance 付与）
+
+進行状況は **Actions** タブで確認できます。
+
+#### 方法2: ローカルから実行（従来通り）
+
+main ブランチが保護されている場合、この方法は**管理者のみ**が使用できます。
 
 ```bash
 # 1. バージョンアップ（自動でコミット & タグ作成）
-npm version patch  # 0.1.0 → 0.1.1
+npm version patch  # 0.3.0 → 0.3.1
 # または
-npm version minor  # 0.1.0 → 0.2.0
-npm version major  # 0.1.0 → 1.0.0
+npm version minor  # 0.3.0 → 0.4.0
+npm version major  # 0.3.0 → 1.0.0
 
 # 2. タグをpush（GitHub Actionsが自動実行される）
 git push origin main --follow-tags
 ```
 
-GitHub Actionsが自動的に:
-
-1. テスト実行（`npm test`）
-2. Lint実行（`npm run lint`）
-3. バージョンチェック（タグとpackage.jsonの一致確認）
-4. ビルド（`npm run build`）
-5. **GitHub Release作成（自動生成されたChangelog付き）**
-6. npmに公開（OIDC認証、Provenance付与）
-
-公開状況はGitHubの**Actions**タブで確認できます。
+**どちらの方法でも同じ結果になります。**
 
 **GitHub Releases**:
 

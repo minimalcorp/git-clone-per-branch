@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'patch'
+
+permissions:
+  contents: write # main への push とタグ作成に必要
+
+# 同時実行を防止（複数人が同時にリリースを開始するのを防ぐ）
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 全履歴取得（タグ情報のため）
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0' # publish.yml と統一
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # リリース前の品質チェック
+      - name: Run CI checks
+        run: |
+          npm run format:check
+          npm run lint
+          npm run type-check
+          npm run build
+          npm test
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # バージョン更新（package.json 更新 + commit + tag 作成）
+      - name: Bump version
+        run: |
+          npm version ${{ inputs.version_type }} -m "chore: release v%s"
+        env:
+          HUSKY: 0 # pre-commit フックをスキップ
+
+      # main ブランチへ push（保護ルールをバイパス）
+      - name: Push changes to main
+        run: |
+          git push origin main --follow-tags
+
+      - name: Summary
+        run: |
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "✅ Successfully created release v${NEW_VERSION}"
+          echo "🚀 The publish workflow will be triggered automatically"
+          echo "📦 Check progress: https://github.com/${{ github.repository }}/actions"
