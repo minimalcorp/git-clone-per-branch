@@ -7,9 +7,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ['*.test.ts'],
-        },
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -17,16 +15,6 @@ export default tseslint.config(
   {
     rules: {
       '@typescript-eslint/no-floating-promises': 'off',
-    },
-  },
-  {
-    files: ['**/*.test.ts'],
-    languageOptions: {
-      parserOptions: {
-        projectService: false,
-        project: './tsconfig.test.json',
-        tsconfigRootDir: import.meta.dirname,
-      },
     },
   },
   {

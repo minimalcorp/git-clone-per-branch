@@ -27,9 +27,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "node --experimental-strip-types --test src/**/*.test.ts",
-    "test:coverage": "node --experimental-strip-types --test --experimental-test-coverage src/**/*.test.ts",
-    "type-check": "tsc --noEmit && tsc --project tsconfig.test.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "type-check": "tsc --noEmit",
     "check": "npm run format:check && npm run lint && npm run type-check && npm run build && npm test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -84,6 +84,7 @@
     "prettier": "^3.4.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.50.0"
+    "typescript-eslint": "^8.50.0",
+    "vitest": "^4.0.16"
   }
 }
