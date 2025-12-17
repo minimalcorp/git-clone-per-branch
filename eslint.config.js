@@ -13,15 +13,23 @@ export default tseslint.config(
     },
   },
   {
-    rules: {
-      '@typescript-eslint/no-floating-promises': 'off',
-    },
-  },
-  {
     files: ['**/*.js'],
     ...tseslint.configs.disableTypeChecked,
   },
   {
     ignores: ['dist', 'node_modules', 'coverage', '*.config.js', '*.config.ts', 'sandbox', 'tests'],
+  },
+  {
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
   }
 );

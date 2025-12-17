@@ -10,6 +10,7 @@ import {
 import { cloneRepository } from '../core/clone.js';
 import { openInVSCode } from '../core/vscode.js';
 import { Logger } from '../utils/logger.js';
+import { terminalManager } from '../utils/terminal.js';
 import { handleError } from '../utils/error-handler.js';
 import { checkGitInstalled, sanitizeBranchName } from '../utils/validators.js';
 import { findRoot, initializeConfig, cleanupEmptyDirectories } from '../core/config.js';
@@ -21,6 +22,9 @@ import inquirer from 'inquirer';
 import type { RemovalSelection } from '../types/index.js';
 
 const logger = new Logger();
+
+// Register terminal cleanup handlers for all exit scenarios
+terminalManager.registerCleanupHandlers();
 
 // Read version from package.json
 const __filename = fileURLToPath(import.meta.url);
@@ -438,6 +442,12 @@ async function runInteractiveMode(): Promise<void> {
     // Show interactive prompt
     let command: string;
     try {
+      // Ensure terminal is in a clean state before showing prompt
+      // This prevents state corruption from previous operations
+      if (process.stdout.isTTY) {
+        process.stdout.write('\x1b[?25h'); // Show cursor
+      }
+
       command = await search({
         message: hasConfig ? 'Select a command:' : 'Initialize gcpb first:',
         source: async (term) => {
