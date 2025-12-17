@@ -39,6 +39,12 @@ export class Logger {
         this.spinner.fail(message);
       }
       this.spinner = null;
+
+      // Ensure terminal is in a clean state after spinner
+      // This helps prevent state issues when spinners stop before prompts
+      if (process.stdout.isTTY) {
+        process.stdout.write('\x1b[?25h'); // Show cursor
+      }
     }
   }
 
