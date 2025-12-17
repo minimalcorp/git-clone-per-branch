@@ -51,12 +51,14 @@ jobs:
 
           echo "✅ Version match confirmed: $PACKAGE_VERSION"
 
-      # - name: Run tests
-      #   run: npm test
-      # TODO: Add tests and re-enable this step
+      - name: Check code formatting
+        run: npm run format:check
 
       - name: Run linter
         run: npm run lint
+
+      - name: Run tests
+        run: npm test
 
       - name: Build package
         run: npm run build
