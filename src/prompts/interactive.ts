@@ -5,6 +5,7 @@ import { validateGitUrl, validateBranchName, sanitizeBranchName } from '../utils
 import { parseGitUrl } from '../core/url-parser.js';
 import { detectContext } from '../core/context-detector.js';
 import { resolveRemoteUrl } from '../core/remote-resolver.js';
+import { detectDefaultBranch } from '../core/default-branch-detector.js';
 import path from 'path';
 
 interface PromptAnswers {
@@ -18,7 +19,8 @@ interface ConfirmAnswers {
 }
 
 export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig> {
-  const answers = await inquirer.prompt<PromptAnswers>([
+  // Step 1: Get the clone URL
+  const { cloneUrl } = await inquirer.prompt<{ cloneUrl: string }>([
     {
       type: 'input',
       name: 'cloneUrl',
@@ -37,11 +39,22 @@ export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig
         }
       },
     },
+  ]);
+
+  // Step 2: Detect default branch
+  const parsed = parseGitUrl(cloneUrl);
+  const defaultBranch = await detectDefaultBranch(cloneUrl, rootDir, parsed.owner, parsed.repo);
+
+  // Step 3: Get branch names
+  const answers = await inquirer.prompt<{
+    baseBranch: string;
+    targetBranch: string;
+  }>([
     {
       type: 'input',
       name: 'baseBranch',
       message: 'Enter the remote branch name:',
-      default: 'main',
+      default: defaultBranch,
       validate: (input: string) => {
         // Allow origin/ prefix for remote branches
         const branchName = input.replace(/^origin\//, '');
@@ -61,7 +74,6 @@ export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig
   ]);
 
   // Show confirmation of directory structure
-  const parsed = parseGitUrl(answers.cloneUrl);
   const targetPath = path.join(
     rootDir,
     parsed.owner,
@@ -88,7 +100,7 @@ export async function promptForCloneConfig(rootDir: string): Promise<CloneConfig
   }
 
   return {
-    cloneUrl: answers.cloneUrl,
+    cloneUrl,
     baseBranch: answers.baseBranch,
     targetBranch: answers.targetBranch,
   };
@@ -238,6 +250,10 @@ export async function promptForCloneConfigWithContext(rootDir: string): Promise<
     cloneUrl = await promptForUrl();
   }
 
+  // Step 5.5: Detect default branch
+  const parsed = parseGitUrl(cloneUrl);
+  const defaultBranch = await detectDefaultBranch(cloneUrl, rootDir, parsed.owner, parsed.repo);
+
   // Step 6: Prompt for baseBranch and targetBranch
   const answers = await inquirer.prompt<{
     baseBranch: string;
@@ -247,7 +263,7 @@ export async function promptForCloneConfigWithContext(rootDir: string): Promise<
       type: 'input',
       name: 'baseBranch',
       message: 'Enter the remote branch name:',
-      default: 'main',
+      default: defaultBranch,
       validate: (input: string) => {
         const branchName = input.replace(/^origin\//, '');
         const validation = validateBranchName(branchName);
@@ -266,7 +282,6 @@ export async function promptForCloneConfigWithContext(rootDir: string): Promise<
   ]);
 
   // Step 7: Show confirmation
-  const parsed = parseGitUrl(cloneUrl);
   const targetPath = path.join(
     rootDir,
     parsed.owner,
