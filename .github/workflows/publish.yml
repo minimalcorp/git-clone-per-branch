@@ -19,6 +19,16 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for changelog generation
 
+      - name: Verify tag is on main branch
+        run: |
+          # タグが指すコミットが main ブランチに含まれているか確認
+          if ! git branch -r --contains ${{ github.ref }} | grep -q 'origin/main'; then
+            echo "❌ Error: This tag is not on the main branch"
+            echo "Tags should only be created from the main branch"
+            exit 1
+          fi
+          echo "✅ Tag is on main branch"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
