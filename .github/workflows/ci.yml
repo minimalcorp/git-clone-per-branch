@@ -46,3 +46,16 @@ jobs:
 
       - name: Build package
         run: npm run build
+
+      - name: Test CLI execution (direct)
+        run: |
+          node dist/bin/cli.js --version
+          node dist/bin/cli.js --help
+
+      - name: Install package locally
+        run: npm link
+
+      - name: Test installed CLI command
+        run: |
+          gcpb --version
+          gcpb --help
