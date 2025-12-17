@@ -3,6 +3,7 @@
   "dockerComposeFile": "./compose.yml",
   "service": "app",
   "workspaceFolder": "/workspace",
+  "runServices": ["app"],
 
   // VS Code設定の上書き
   "customizations": {
@@ -72,7 +73,7 @@
   ],
 
   // コンテナ作成後コマンド（macOS固有のSSH設定を除外）
-  "postCreateCommand": "mkdir -p ~/.ssh && cp -r /tmp/host-ssh/* ~/.ssh/ && (grep -v 'UseKeychain\\|AddKeysToAgent' ~/.ssh/config > ~/.ssh/config.new 2>/dev/null && mv ~/.ssh/config.new ~/.ssh/config || true) && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* 2>/dev/null || true",
+  // "postCreateCommand": "mkdir -p ~/.ssh && cp -r /tmp/host-ssh/* ~/.ssh/ && (grep -v 'UseKeychain\\|AddKeysToAgent' ~/.ssh/config > ~/.ssh/config.new 2>/dev/null && mv ~/.ssh/config.new ~/.ssh/config || true) && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* 2>/dev/null || true",
 
   // 機能の追加
   "features": {
