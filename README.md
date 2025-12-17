@@ -4,12 +4,14 @@ CLI tool for cloning git repository per branch - alternative to git worktree
 
 ## Features
 
-- Clone repositories into an organized directory structure: `${owner}/${repo}/${branch}`
-- Interactive prompts for easy configuration
-- Automatically create local branches based on a remote branch
-- Auto-open cloned repository in VSCode
-- Support for both HTTPS and SSH URLs
-- Built with TypeScript for type safety
+- **Interactive command selection** - Searchable command menu with fuzzy filtering
+- **Smart URL detection** - Automatically detects repository URLs from existing branches
+- **Organized structure** - Clone repositories into `${owner}/${repo}/${branch}`
+- **Multiple commands** - Add, remove, open, and manage cloned branches
+- **Auto-open in VSCode** - Instantly open cloned repositories in your editor
+- **Context-aware prompts** - Simplified input based on current directory
+- **Support for HTTPS and SSH** - Works with both authentication methods
+- **Type-safe** - Built with TypeScript for reliability
 
 ## Installation
 
@@ -38,68 +40,130 @@ npm link
 
 ## Usage
 
-Simply run the command:
+### First Time Setup
+
+Initialize gcpb in your desired workspace directory:
+
+```bash
+cd ~/workspace  # or your preferred location
+gcpb init
+```
+
+This creates a `.gcpb` directory to store configuration.
+
+### Interactive Mode
+
+Simply run `gcpb` to enter interactive mode:
 
 ```bash
 gcpb
 ```
 
+You'll see a searchable command menu:
+- `add` - Clone a new repository branch
+- `rm` - Remove cloned branches
+- `open` - Reopen a branch in VSCode
+- `Exit` - Exit the program
+
+Type to filter commands, then select with Enter or arrow keys.
+
+### Commands
+
+#### Add a Repository Branch
+
+```bash
+gcpb add
+```
+
 The CLI will guide you through:
 
-1. **Git repository URL**: Enter the clone URL (HTTPS or SSH)
+1. **Repository URL** (auto-detected if in owner/repo directory)
    - Example: `https://github.com/user/repo.git`
    - Example: `git@github.com:user/repo.git`
 
 2. **Remote branch name**: The remote branch to checkout from
    - Default: `main`
-   - Refers to origin branches (e.g., main → origin/main, feat/xxx → origin/feat/xxx)
 
-3. **Local branch name**: The name of your local working branch
+3. **Local branch name**: Your local working branch
    - Example: `feat/new-feature`
-   - Can be same as remote (work on existing) or different (create new)
 
-4. **Confirmation**: Review the target directory and confirm
+4. **Confirmation**: Review the target directory
 
-The repository will be cloned to:
-```
-./${owner}/${repo}/${local-branch}/
+Repositories are cloned to: `.gcpb/${owner}/${repo}/${local-branch}/`
+
+#### Remove Branches
+
+```bash
+gcpb rm
 ```
 
-For example:
+Select branches to remove from an interactive list.
+
+#### Reopen in VSCode
+
+```bash
+gcpb open
 ```
-./facebook/react/feat-new-hooks/
-```
+
+Select a previously cloned branch to reopen in VSCode.
 
 ## Example
 
 ```bash
+# Initialize workspace
+$ cd ~/workspace
+$ gcpb init
+✔ Initialized .gcpb in /Users/you/workspace
+
+# Enter interactive mode
 $ gcpb
-? Enter the Git repository URL: https://github.com/facebook/react.git
+? Select a command: › add - Clone a repository branch
+
+# Smart URL detection (when in .gcpb/facebook/react directory)
+$ cd .gcpb/facebook/react
+$ gcpb add
+Detected context: facebook/react
+Found repository URL from "main" branch:
+  https://github.com/facebook/react.git
+
+? Use this repository URL? Yes
 ? Enter the remote branch name: main
 ? Enter the local branch name: feat/new-hooks
 
 Repository will be cloned to:
-  /Users/you/projects/facebook/react/feat-new-hooks
+  /Users/you/workspace/.gcpb/facebook/react/feat-new-hooks
 
 ? Continue? Yes
 ✔ Prerequisites OK
 ✔ Repository cloned successfully
 ✔ Successfully opened in VSCode
 
-╭─────────────────────────────────────────────────────╮
-│                                                     │
-│   Repository cloned to:                            │
-│   /Users/you/projects/facebook/react/feat-new-hooks│
-│                                                     │
-│   Branch: feat/new-hooks                           │
-│                                                     │
-╰─────────────────────────────────────────────────────╯
+╭────────────────────────────────────────────────────────────╮
+│                                                            │
+│   Repository cloned to:                                   │
+│   /Users/you/workspace/.gcpb/facebook/react/feat-new-hooks│
+│                                                            │
+│   Branch: feat/new-hooks                                  │
+│                                                            │
+╰────────────────────────────────────────────────────────────╯
 ```
 
 ## How it Works
 
+### Interactive Mode
+- Searchable command selection with fuzzy filtering
+- Context-aware commands (init-only before setup, full commands after)
+- Graceful exit with Ctrl+C
+
+### Smart URL Detection
+1. Detects current directory location in gcpb structure
+2. If in owner/repo directory, lists available repositories
+3. Extracts remote URL from existing branch `.git` directories
+4. Falls back to manual URL input if detection fails
+
+### Cloning Process
 1. Parses the Git URL to extract owner/organization and repository name
-2. Creates the directory structure: `${cwd}/${owner}/${repo}/${branch}`
+2. Creates the directory structure: `.gcpb/${owner}/${repo}/${branch}`
 3. Clones the repository to the target directory
 4. Creates and checks out a local branch based on the specified remote branch
    - Equivalent to: `git checkout -b ${localBranch} origin/${remoteBranch}`
