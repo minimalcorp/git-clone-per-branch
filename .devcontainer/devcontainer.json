@@ -60,8 +60,7 @@
   "remoteEnv": {
     "PATH": "${containerEnv:PATH}:/workspace/node_modules/.bin:/home/node/.local/bin",
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
-    "GITHUB_PAT": "${localEnv:GITHUB_PAT}",
-    "GITHUB_TOOLSETS": "${localEnv:GITHUB_TOOLSETS:-repos,issues,pull_requests,actions}"
+    "GITHUB_PAT": "${localEnv:GITHUB_PAT}"
   },
 
   // マウント設定
