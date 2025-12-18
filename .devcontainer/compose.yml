@@ -19,7 +19,6 @@ services:
       - MCP_FIGMA_HOSTNAME=host.docker.internal
       # GitHub MCP用環境変数（ホストから引き継ぎ）
       - GITHUB_PAT=${GITHUB_PAT}
-      - GITHUB_TOOLSETS=${GITHUB_TOOLSETS}
     command: sleep infinity
     profiles:
       - dev-container
@@ -47,3 +46,8 @@ services:
 volumes:
   npm-cache:
   node-modules:
+
+networks:
+  default:
+    external: true
+    name: funds-frontend-network
