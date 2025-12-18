@@ -12,6 +12,8 @@ CLI tool for cloning git repositories per branch - a simple, dev container-frien
 
 <!-- ![gcpb Demo](docs/images/gcpb-demo.gif) -->
 
+![gcpb Interactive Mode](docs/images/gcpb-ss.jpg)
+
 ## 📖 Available in Other Languages
 
 - [日本語 (Japanese)](docs/readme/ja.md)
@@ -114,6 +116,8 @@ gcpb init
 ```
 
 This creates a `.gcpb` directory to store configuration.
+
+> **💡 Recommended**: Initialize gcpb in an **empty directory**. Starting with a clean workspace ensures proper directory structure and avoids conflicts with existing files.
 
 ### Local Development
 
