@@ -108,6 +108,7 @@ describe('clone (integration)', () => {
   describe('error cases', () => {
     test('should return error when target path already exists', async () => {
       vi.mocked(fs.pathExists).mockResolvedValue(true);
+      vi.mocked(fs.remove).mockResolvedValue(undefined);
 
       const result = await cloneRepository({
         cloneUrl: 'https://github.com/user/repo.git',
@@ -119,6 +120,8 @@ describe('clone (integration)', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeInstanceOf(GCPBError);
       expect(result.error?.message).toContain('already exists');
+      // IMPORTANT: Should not remove the existing directory
+      expect(fs.remove).not.toHaveBeenCalled();
     });
 
     test('should return error when clone fails', async () => {

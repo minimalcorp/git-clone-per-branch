@@ -27,6 +27,7 @@ async function getDefaultBranch(git: SimpleGit): Promise<string> {
 
 export async function cloneRepository(options: CloneOptions): Promise<CloneResult> {
   let targetPath = '';
+  let shouldCleanupOnError = false;
 
   try {
     // 1. Parse git URL to get owner and repo
@@ -49,6 +50,9 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
         'Please use a different branch name or remove the existing directory'
       );
     }
+
+    // From this point onwards, if an error occurs, we should cleanup the cloned directory
+    shouldCleanupOnError = true;
 
     // 4. Create parent directories if needed
     await fs.ensureDir(path.dirname(targetPath));
@@ -109,13 +113,16 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     };
   } catch (error) {
     // Cleanup: Remove cloned directory if clone succeeded but later steps failed
-    try {
-      if (await fs.pathExists(targetPath)) {
-        await fs.remove(targetPath);
+    // BUT: Don't cleanup if validation failed (directory already existed)
+    if (shouldCleanupOnError) {
+      try {
+        if (await fs.pathExists(targetPath)) {
+          await fs.remove(targetPath);
+        }
+      } catch {
+        // Ignore cleanup errors, prioritize original error
+        // Cleanup failure shouldn't hide the actual error
       }
-    } catch {
-      // Ignore cleanup errors, prioritize original error
-      // Cleanup failure shouldn't hide the actual error
     }
 
     if (error instanceof GCPBError) {
