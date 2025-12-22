@@ -1,25 +1,17 @@
 import { Command } from 'commander';
 import { search } from '@inquirer/prompts';
-import { promptForCloneConfigWithContext } from '../prompts/interactive.js';
-import { promptForOrg, promptForRepo, promptForBranches } from '../prompts/remove.js';
-import {
-  promptForOrg as promptForOrgOpen,
-  promptForRepo as promptForRepoOpen,
-  promptForBranch,
-} from '../prompts/open.js';
-import { cloneRepository } from '../core/clone.js';
-import { handleEditorOpening, openInVSCode } from '../core/editor.js';
+import { executeAddCommandInteractive } from '../orchestrators/add-orchestrator.js';
+import { executeRemoveCommandInteractive } from '../orchestrators/rm-orchestrator.js';
+import { executeOpenCommandInteractive } from '../orchestrators/open-orchestrator.js';
+import { handleEditorOpening } from '../core/editor.js';
 import { Logger } from '../utils/logger.js';
 import { terminalManager } from '../utils/terminal.js';
 import { handleError } from '../utils/error-handler.js';
-import { checkGitInstalled, sanitizeBranchName } from '../utils/validators.js';
-import { findRoot, initializeConfig, cleanupEmptyDirectories } from '../core/config.js';
-import { scanRepositories } from '../core/repository-scanner.js';
+import { checkGitInstalled } from '../utils/validators.js';
+import { findRoot, initializeConfig } from '../core/config.js';
 import fs from 'fs-extra';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import inquirer from 'inquirer';
-import type { RemovalSelection } from '../types/index.js';
 
 const logger = new Logger();
 
@@ -92,7 +84,7 @@ program
   .description('Clone a repository branch')
   .action(async () => {
     try {
-      // 1. Check git is installed
+      // Check git is installed
       logger.startSpinner('Checking prerequisites...');
       const gitCheck = checkGitInstalled();
       if (!gitCheck.valid) {
@@ -102,7 +94,7 @@ program
       }
       logger.stopSpinner(true, 'Prerequisites OK');
 
-      // 2. Find root directory
+      // Find root directory
       const rootDir = await findRoot();
       if (!rootDir) {
         logger.error('No .gcpb configuration found');
@@ -112,33 +104,17 @@ program
 
       logger.info(`Root directory: ${rootDir}`);
 
-      // 3. Prompt for configuration
-      const config = await promptForCloneConfigWithContext(rootDir);
-
-      // 4. Clone repository
-      logger.startSpinner('Cloning repository...');
-      const result = await cloneRepository({
-        ...config,
-        rootDir,
-      });
+      // Execute add command with orchestrator
+      const result = await executeAddCommandInteractive(rootDir, process.cwd(), logger);
 
       if (!result.success) {
-        logger.stopSpinner(false, 'Clone failed');
-        if (result.error) {
-          throw result.error;
-        }
-        throw new Error('Clone failed with unknown error');
+        process.exit(1);
       }
-      logger.stopSpinner(true, 'Repository cloned successfully');
 
-      // 5. Handle editor opening
-      await handleEditorOpening(result.targetPath, rootDir, logger);
-
-      // 6. Show success message
-      logger.box(
-        `Repository cloned to:\n${result.targetPath}\n\nBranch: ${config.targetBranch}`,
-        'success'
-      );
+      // Handle editor opening
+      if (result.targetPath) {
+        await handleEditorOpening(result.targetPath, rootDir, logger);
+      }
     } catch (error) {
       if (isCancellationError(error)) {
         console.log('');
@@ -157,7 +133,7 @@ program
   .option('-f, --force', 'Remove without confirmation')
   .action(async (targetPath?: string, options?: { force?: boolean }) => {
     try {
-      // 1. Find root directory
+      // Find root directory
       const rootDir = await findRoot();
       if (!rootDir) {
         logger.error('No .gcpb configuration found');
@@ -165,112 +141,17 @@ program
         process.exit(1);
       }
 
-      // 2. Scan repositories
-      logger.startSpinner('Scanning repositories...');
-      const repositories = await scanRepositories(rootDir);
-      logger.stopSpinner(true, 'Scan complete');
+      // Execute remove command with orchestrator
+      const result = await executeRemoveCommandInteractive(
+        rootDir,
+        targetPath,
+        options?.force,
+        logger
+      );
 
-      if (repositories.length === 0) {
-        logger.warn('No repositories found');
-        logger.info('Use "gcpb add" to clone repositories');
-        process.exit(0);
-      }
-
-      // 3. Parse path argument
-      // Handle branch names with slashes (e.g., org/repo/feat/xxx)
-      const pathParts = targetPath ? targetPath.split('/') : [];
-      const [org, repo, ...branchParts] = pathParts;
-      // Join remaining parts and sanitize to match directory structure
-      const branch = branchParts.length > 0 ? sanitizeBranchName(branchParts.join('/')) : undefined;
-
-      // 4. Hierarchical selection
-      let selectedOrg = org;
-      let selectedRepo = repo;
-      let selectedBranches: string[] = [];
-
-      // Select org if not provided
-      if (!selectedOrg) {
-        selectedOrg = await promptForOrg(repositories);
-      }
-
-      // Filter repos by org
-      const orgRepos = repositories.filter((r) => r.owner === selectedOrg);
-      if (orgRepos.length === 0) {
-        logger.error(`No repositories found for organization: ${selectedOrg}`);
+      if (!result.success) {
         process.exit(1);
       }
-
-      // Select repo if not provided
-      if (!selectedRepo) {
-        selectedRepo = await promptForRepo(orgRepos);
-      }
-
-      // Find target repo
-      const targetRepoInfo = orgRepos.find((r) => r.repo === selectedRepo);
-      if (!targetRepoInfo) {
-        logger.error(`Repository not found: ${selectedOrg}/${selectedRepo}`);
-        process.exit(1);
-      }
-
-      // Select branches
-      if (!branch) {
-        // Prompt for branches (multi-select)
-        selectedBranches = await promptForBranches(targetRepoInfo.branches);
-      } else {
-        // Use specified branch
-        if (!targetRepoInfo.branches.includes(branch)) {
-          logger.error(`Branch not found: ${selectedOrg}/${selectedRepo}/${branch}`);
-          process.exit(1);
-        }
-        selectedBranches = [branch];
-      }
-
-      // 5. Build removal list
-      const itemsToRemove: RemovalSelection[] = selectedBranches.map((b) => ({
-        path: path.join(rootDir, selectedOrg, selectedRepo, sanitizeBranchName(b)),
-        label: `${selectedOrg}/${selectedRepo}/${b}`, // Display with original branch name
-      }));
-
-      // 6. Confirm deletion (unless --force)
-      if (!options?.force) {
-        console.log('');
-        console.log('The following will be removed:');
-        itemsToRemove.forEach((item) => {
-          logger.warn(`  ${item.label}`);
-        });
-        console.log('');
-
-        interface ConfirmAnswer {
-          confirm: boolean;
-        }
-
-        const { confirm } = await inquirer.prompt<ConfirmAnswer>([
-          {
-            type: 'confirm',
-            name: 'confirm',
-            message: 'Continue with removal?',
-            default: false,
-          },
-        ]);
-
-        if (!confirm) {
-          logger.info('Cancelled');
-          process.exit(0);
-        }
-      }
-
-      // 7. Remove directories
-      logger.startSpinner('Removing repositories...');
-      for (const item of itemsToRemove) {
-        await fs.remove(item.path);
-      }
-      logger.stopSpinner(true, 'Removal complete');
-
-      // 8. Cleanup empty directories
-      await cleanupEmptyDirectories(rootDir);
-
-      // 9. Success message
-      logger.success(`Removed ${itemsToRemove.length} branch(es)`);
     } catch (error) {
       if (isCancellationError(error)) {
         console.log('');
@@ -288,7 +169,7 @@ program
   .description('Open a cloned repository branch in VSCode')
   .action(async (targetPath?: string) => {
     try {
-      // 1. Find root directory
+      // Find root directory
       const rootDir = await findRoot();
       if (!rootDir) {
         logger.error('No .gcpb configuration found');
@@ -296,85 +177,11 @@ program
         process.exit(1);
       }
 
-      // 2. Scan repositories
-      logger.startSpinner('Scanning repositories...');
-      const repositories = await scanRepositories(rootDir);
-      logger.stopSpinner(true, 'Scan complete');
+      // Execute open command with orchestrator
+      const result = await executeOpenCommandInteractive(rootDir, targetPath, logger);
 
-      if (repositories.length === 0) {
-        logger.warn('No repositories found');
-        logger.info('Use "gcpb add" to clone repositories');
-        process.exit(0);
-      }
-
-      // 3. Parse path argument (org/repo/branch)
-      const pathParts = targetPath ? targetPath.split('/') : [];
-      const [org, repo, ...branchParts] = pathParts;
-      const branch = branchParts.length > 0 ? sanitizeBranchName(branchParts.join('/')) : undefined;
-
-      // 4. Hierarchical selection
-      let selectedOrg = org;
-      let selectedRepo = repo;
-      let selectedBranch: string;
-
-      // Select org if not provided
-      if (!selectedOrg) {
-        selectedOrg = await promptForOrgOpen(repositories);
-      }
-
-      // Filter repos by org
-      const orgRepos = repositories.filter((r) => r.owner === selectedOrg);
-      if (orgRepos.length === 0) {
-        logger.error(`No repositories found for organization: ${selectedOrg}`);
+      if (!result.success) {
         process.exit(1);
-      }
-
-      // Select repo if not provided
-      if (!selectedRepo) {
-        selectedRepo = await promptForRepoOpen(orgRepos);
-      }
-
-      // Find target repo
-      const targetRepoInfo = orgRepos.find((r) => r.repo === selectedRepo);
-      if (!targetRepoInfo) {
-        logger.error(`Repository not found: ${selectedOrg}/${selectedRepo}`);
-        process.exit(1);
-      }
-
-      // Select branch (single-select)
-      if (!branch) {
-        selectedBranch = await promptForBranch(targetRepoInfo.branches);
-      } else {
-        if (!targetRepoInfo.branches.includes(branch)) {
-          logger.error(`Branch not found: ${selectedOrg}/${selectedRepo}/${branch}`);
-          process.exit(1);
-        }
-        selectedBranch = branch;
-      }
-
-      // 5. Construct target path
-      const branchPath = path.join(rootDir, selectedOrg, selectedRepo, selectedBranch);
-
-      // 6. Verify directory exists
-      const exists = await fs.pathExists(branchPath);
-      if (!exists) {
-        logger.error(`Branch directory not found: ${branchPath}`);
-        process.exit(1);
-      }
-
-      // 7. Open in VSCode
-      logger.info(`Opening ${selectedOrg}/${selectedRepo}/${selectedBranch}...`);
-      const opened = await openInVSCode({ targetPath: branchPath });
-
-      if (opened) {
-        logger.success('Successfully opened in VSCode');
-        logger.box(
-          `Opened in VSCode:\n${selectedOrg}/${selectedRepo}/${selectedBranch}\n\nPath: ${branchPath}`,
-          'success'
-        );
-      } else {
-        logger.warn('VSCode not available. Please open manually:');
-        logger.info(`  cd ${branchPath}`);
       }
     } catch (error) {
       if (isCancellationError(error)) {
@@ -514,30 +321,17 @@ async function runInteractiveMode(): Promise<void> {
 
         logger.info(`Root directory: ${addRootDir}`);
 
-        // Prompt for configuration
-        const config = await promptForCloneConfigWithContext(addRootDir);
-
-        // Clone repository
-        logger.startSpinner('Cloning repository...');
-        const result = await cloneRepository({
-          ...config,
-          rootDir: addRootDir,
-        });
+        // Execute add command with orchestrator
+        const result = await executeAddCommandInteractive(addRootDir, process.cwd(), logger);
 
         if (!result.success) {
-          logger.stopSpinner(false, 'Clone failed');
-          if (result.error) {
-            throw result.error;
-          }
           break;
         }
 
-        logger.stopSpinner(true, 'Clone complete');
-
         // Handle editor opening with preferences
-        await handleEditorOpening(result.targetPath, addRootDir, logger);
-
-        logger.box(`Successfully cloned repository\n\nPath: ${result.targetPath}`, 'success');
+        if (result.targetPath) {
+          await handleEditorOpening(result.targetPath, addRootDir, logger);
+        }
         break;
       }
 
@@ -550,68 +344,8 @@ async function runInteractiveMode(): Promise<void> {
           break;
         }
 
-        // Scan repositories
-        logger.startSpinner('Scanning repositories...');
-        const repositories = await scanRepositories(rmRootDir);
-        logger.stopSpinner(true, 'Scan complete');
-
-        if (repositories.length === 0) {
-          logger.warn('No repositories found');
-          logger.info('Use add command to clone repositories');
-          break;
-        }
-
-        // Hierarchical selection
-        const selectedOrg = await promptForOrg(repositories);
-        const orgRepos = repositories.filter((r) => r.owner === selectedOrg);
-        const selectedRepo = await promptForRepo(orgRepos);
-        const targetRepo = orgRepos.find((r) => r.repo === selectedRepo);
-
-        if (!targetRepo) {
-          logger.error(`Repository not found: ${selectedOrg}/${selectedRepo}`);
-          break;
-        }
-
-        const selectedBranches = await promptForBranches(targetRepo.branches);
-
-        // Confirm deletion
-        console.log('');
-        console.log('The following branches will be removed:');
-        selectedBranches.forEach((branch) => {
-          console.log(`  - ${selectedOrg}/${selectedRepo}/${branch}`);
-        });
-        console.log('');
-
-        const { confirm } = await inquirer.prompt<{ confirm: boolean }>([
-          {
-            type: 'confirm',
-            name: 'confirm',
-            message: 'Are you sure you want to remove these branches?',
-            default: false,
-          },
-        ]);
-
-        if (!confirm) {
-          logger.info('Operation cancelled');
-          break;
-        }
-
-        // Remove branches
-        logger.startSpinner('Removing branches...');
-        for (const branch of selectedBranches) {
-          const branchPath = path.join(rmRootDir, selectedOrg, selectedRepo, branch);
-          await fs.remove(branchPath);
-        }
-        logger.stopSpinner(true, 'Removal complete');
-
-        // Cleanup empty directories
-        await cleanupEmptyDirectories(rmRootDir);
-
-        logger.success('Successfully removed branches');
-        logger.box(
-          `Removed ${selectedBranches.length} branch${selectedBranches.length === 1 ? '' : 'es'}\n\nOrganization: ${selectedOrg}\nRepository: ${selectedRepo}`,
-          'success'
-        );
+        // Execute remove command with orchestrator
+        await executeRemoveCommandInteractive(rmRootDir, undefined, false, logger);
         break;
       }
 
@@ -624,58 +358,8 @@ async function runInteractiveMode(): Promise<void> {
           break;
         }
 
-        // Scan repositories
-        logger.startSpinner('Scanning repositories...');
-        const repositories = await scanRepositories(openRootDir);
-        logger.stopSpinner(true, 'Scan complete');
-
-        if (repositories.length === 0) {
-          logger.warn('No repositories found');
-          logger.info('Use add command to clone repositories');
-          break;
-        }
-
-        // Hierarchical selection
-        const selectedOrg = await promptForOrgOpen(repositories);
-        const orgRepos = repositories.filter((r) => r.owner === selectedOrg);
-
-        if (orgRepos.length === 0) {
-          logger.error(`No repositories found for organization: ${selectedOrg}`);
-          break;
-        }
-
-        const selectedRepo = await promptForRepoOpen(orgRepos);
-        const targetRepoInfo = orgRepos.find((r) => r.repo === selectedRepo);
-
-        if (!targetRepoInfo) {
-          logger.error(`Repository not found: ${selectedOrg}/${selectedRepo}`);
-          break;
-        }
-
-        const selectedBranch = await promptForBranch(targetRepoInfo.branches);
-        const branchPath = path.join(openRootDir, selectedOrg, selectedRepo, selectedBranch);
-
-        // Verify directory exists
-        const exists = await fs.pathExists(branchPath);
-        if (!exists) {
-          logger.error(`Branch directory not found: ${branchPath}`);
-          break;
-        }
-
-        // Open in VSCode
-        logger.info(`Opening ${selectedOrg}/${selectedRepo}/${selectedBranch}...`);
-        const opened = await openInVSCode({ targetPath: branchPath });
-
-        if (opened) {
-          logger.success('Successfully opened in VSCode');
-          logger.box(
-            `Opened in VSCode:\n${selectedOrg}/${selectedRepo}/${selectedBranch}\n\nPath: ${branchPath}`,
-            'success'
-          );
-        } else {
-          logger.warn('VSCode not available. Please open manually:');
-          logger.info(`  cd ${branchPath}`);
-        }
+        // Execute open command with orchestrator
+        await executeOpenCommandInteractive(openRootDir, undefined, logger);
         break;
       }
     }
