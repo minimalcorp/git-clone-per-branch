@@ -27,13 +27,13 @@ import type {
 } from '../../../src/state/types.js';
 
 // Mock dependencies
-vi.mock('../../../src/utils/prompt-wrapper.js', () => ({
-  wrappedPrompt: vi.fn(),
-  wrapPromptFunction: vi.fn((fn) => fn()),
-}));
-
-vi.mock('@inquirer/prompts', () => ({
-  search: vi.fn(),
+vi.mock('../../../src/utils/inquirer-helpers.js', () => ({
+  searchWithEsc: vi.fn(),
+  inputWithEsc: vi.fn(),
+  confirmWithEsc: vi.fn(),
+  selectWithEsc: vi.fn(),
+  checkboxWithEsc: vi.fn(),
+  withProcessing: vi.fn((message, processingFn) => processingFn()),
 }));
 
 vi.mock('../../../src/utils/validators.js', () => ({
@@ -62,8 +62,13 @@ vi.mock('../../../src/core/cache-scanner.js', () => ({
   getCacheUrl: vi.fn(),
 }));
 
-import { wrappedPrompt, wrapPromptFunction } from '../../../src/utils/prompt-wrapper.js';
-import { search } from '@inquirer/prompts';
+import {
+  searchWithEsc,
+  inputWithEsc,
+  confirmWithEsc,
+  selectWithEsc,
+  checkboxWithEsc,
+} from '../../../src/utils/inquirer-helpers.js';
 import { validateGitUrl, validateBranchName } from '../../../src/utils/validators.js';
 import { parseGitUrl } from '../../../src/core/url-parser.js';
 import { resolveRemoteUrl } from '../../../src/core/remote-resolver.js';
@@ -71,8 +76,15 @@ import { detectDefaultBranch } from '../../../src/core/default-branch-detector.j
 import { getCacheUrl } from '../../../src/core/cache-scanner.js';
 
 describe('add-states', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   describe('addSelectMode', () => {
@@ -85,7 +97,7 @@ describe('add-states', () => {
       const result = await addSelectMode(input);
 
       expect(result.value.mode).toBe('manual');
-      expect(wrappedPrompt).not.toHaveBeenCalled();
+      expect(selectWithEsc).not.toHaveBeenCalled();
     });
 
     test('should prompt for mode when existing owners available', async () => {
@@ -94,18 +106,16 @@ describe('add-states', () => {
         hasCachedOwners: false,
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ mode: 'select' });
+      vi.mocked(selectWithEsc).mockResolvedValue('select');
 
       const result = await addSelectMode(input);
 
       expect(result.value.mode).toBe('select');
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'list',
-          name: 'mode',
           message: 'How do you want to add a repository?',
-        }),
-      ]);
+        })
+      );
     });
 
     test('should prompt for mode when cached owners available', async () => {
@@ -114,12 +124,12 @@ describe('add-states', () => {
         hasCachedOwners: true,
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ mode: 'cache' });
+      vi.mocked(selectWithEsc).mockResolvedValue('cache');
 
       const result = await addSelectMode(input);
 
       expect(result.value.mode).toBe('cache');
-      expect(wrappedPrompt).toHaveBeenCalled();
+      expect(selectWithEsc).toHaveBeenCalled();
     });
 
     test('should allow selecting manual mode', async () => {
@@ -128,7 +138,7 @@ describe('add-states', () => {
         hasCachedOwners: false,
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ mode: 'manual' });
+      vi.mocked(selectWithEsc).mockResolvedValue('manual');
 
       const result = await addSelectMode(input);
 
@@ -137,18 +147,18 @@ describe('add-states', () => {
   });
 
   describe('addSelectOwner', () => {
-    test('should prompt for owner selection using search', async () => {
+    test('should prompt for owner selection using searchWithEsc', async () => {
       const input: AddSelectOwnerInput = {
         rootDir: '/root',
         availableOwners: ['org1', 'org2', 'org3'],
       };
 
-      vi.mocked(search).mockResolvedValue('org1');
+      vi.mocked(searchWithEsc).mockResolvedValue('org1');
 
       const result = await addSelectOwner(input);
 
       expect(result.value.owner).toBe('org1');
-      expect(search).toHaveBeenCalled();
+      expect(searchWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error when no owners available', async () => {
@@ -160,21 +170,21 @@ describe('add-states', () => {
       await expect(addSelectOwner(input)).rejects.toThrow('No owners found');
     });
 
-    test('should filter owners by search term', async () => {
+    test('should filter owners by searchWithEsc term', async () => {
       const input: AddSelectOwnerInput = {
         rootDir: '/root',
         availableOwners: ['github', 'gitlab', 'bitbucket'],
       };
 
       let sourceFn: any;
-      vi.mocked(search).mockImplementation(async (config: any) => {
+      vi.mocked(searchWithEsc).mockImplementation(async (config: any) => {
         sourceFn = config.source;
         return 'github';
       });
 
       await addSelectOwner(input);
 
-      // Test the source function with a search term
+      // Test the source function with a searchWithEsc term
       const filteredResults = await sourceFn('git');
       expect(filteredResults).toEqual([
         { name: 'github', value: 'github' },
@@ -184,19 +194,19 @@ describe('add-states', () => {
   });
 
   describe('addSelectRepo', () => {
-    test('should prompt for repo selection using search', async () => {
+    test('should prompt for repo selection using searchWithEsc', async () => {
       const input: AddSelectRepoInput = {
         rootDir: '/root',
         owner: 'org1',
         availableRepos: ['repo1', 'repo2', 'repo3'],
       };
 
-      vi.mocked(search).mockResolvedValue('repo1');
+      vi.mocked(searchWithEsc).mockResolvedValue('repo1');
 
       const result = await addSelectRepo(input);
 
       expect(result.value.repo).toBe('repo1');
-      expect(search).toHaveBeenCalled();
+      expect(searchWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error when no repos available', async () => {
@@ -209,7 +219,7 @@ describe('add-states', () => {
       await expect(addSelectRepo(input)).rejects.toThrow('No repositories found');
     });
 
-    test('should filter repos by search term', async () => {
+    test('should filter repos by searchWithEsc term', async () => {
       const input: AddSelectRepoInput = {
         rootDir: '/root',
         owner: 'org1',
@@ -217,14 +227,14 @@ describe('add-states', () => {
       };
 
       let sourceFn: any;
-      vi.mocked(search).mockImplementation(async (config: any) => {
+      vi.mocked(searchWithEsc).mockImplementation(async (config: any) => {
         sourceFn = config.source;
         return 'frontend';
       });
 
       await addSelectRepo(input);
 
-      // Test the source function with a search term
+      // Test the source function with a searchWithEsc term
       const filteredResults = await sourceFn('end');
       expect(filteredResults).toEqual([
         { name: 'frontend', value: 'frontend' },
@@ -289,19 +299,18 @@ describe('add-states', () => {
         detectedFrom: 'main',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ useDetectedUrl: true });
+      vi.mocked(confirmWithEsc).mockResolvedValue(true);
 
       const result = await addConfirmUrl(input);
 
       expect(result.value.useDetected).toBe(true);
       expect(console.log).toHaveBeenCalled();
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(confirmWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'confirm',
-          name: 'useDetectedUrl',
           message: 'Use this repository URL?',
-        }),
-      ]);
+          default: true,
+        })
+      );
     });
 
     test('should allow declining detected URL', async () => {
@@ -310,7 +319,7 @@ describe('add-states', () => {
         detectedFrom: 'main',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ useDetectedUrl: false });
+      vi.mocked(confirmWithEsc).mockResolvedValue(false);
 
       const result = await addConfirmUrl(input);
 
@@ -322,9 +331,7 @@ describe('add-states', () => {
     test('should prompt for manual URL entry', async () => {
       const input: AddEnterUrlInput = {};
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({
-        cloneUrl: 'https://github.com/user/repo.git',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValue('https://github.com/user/repo.git');
       vi.mocked(validateGitUrl).mockReturnValue({ valid: true });
       vi.mocked(parseGitUrl).mockReturnValue({
         owner: 'user',
@@ -335,27 +342,24 @@ describe('add-states', () => {
       const result = await addEnterUrl(input);
 
       expect(result.value.url).toBe('https://github.com/user/repo.git');
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(inputWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'input',
-          name: 'cloneUrl',
           message: 'Enter the Git repository URL:',
           validate: expect.any(Function),
-        }),
-      ]);
+        })
+      );
     });
 
     test('should validate URL format', async () => {
       const input: AddEnterUrlInput = {};
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({
-        cloneUrl: 'https://github.com/user/repo.git',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValue('https://github.com/user/repo.git');
 
       await addEnterUrl(input);
 
       // Get the validate function
-      const validateFn = vi.mocked(wrappedPrompt).mock.calls[0][0][0].validate;
+      const config = vi.mocked(inputWithEsc).mock.calls[0][0];
+      const validateFn = config.validate;
       if (typeof validateFn === 'function') {
         // Test invalid URL
         vi.mocked(validateGitUrl).mockReturnValue({
@@ -386,10 +390,7 @@ describe('add-states', () => {
       };
 
       vi.mocked(detectDefaultBranch).mockResolvedValue('main');
-      vi.mocked(wrappedPrompt).mockResolvedValue({
-        baseBranch: 'main',
-        targetBranch: 'feature-branch',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValueOnce('main').mockResolvedValueOnce('feature-branch');
       vi.mocked(validateBranchName).mockReturnValue({ valid: true });
 
       const result = await addConfigureBranches(input);
@@ -414,20 +415,17 @@ describe('add-states', () => {
       };
 
       vi.mocked(detectDefaultBranch).mockResolvedValue('develop');
-      vi.mocked(wrappedPrompt).mockResolvedValue({
-        baseBranch: 'develop',
-        targetBranch: 'feature',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValueOnce('develop').mockResolvedValueOnce('feature');
 
       await addConfigureBranches(input);
 
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(inputWithEsc).toHaveBeenNthCalledWith(
+        1,
         expect.objectContaining({
-          name: 'baseBranch',
+          message: 'Enter the remote branch name:',
           default: 'develop',
-        }),
-        expect.any(Object),
-      ]);
+        })
+      );
     });
 
     test('should validate branch names', async () => {
@@ -439,17 +437,15 @@ describe('add-states', () => {
       };
 
       vi.mocked(detectDefaultBranch).mockResolvedValue('main');
-      vi.mocked(wrappedPrompt).mockResolvedValue({
-        baseBranch: 'main',
-        targetBranch: 'feature',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValueOnce('main').mockResolvedValueOnce('feature');
 
       await addConfigureBranches(input);
 
-      // Get validate functions
-      const questions = vi.mocked(wrappedPrompt).mock.calls[0][0];
-      const baseBranchValidate = questions[0].validate;
-      const targetBranchValidate = questions[1].validate;
+      // Get validate functions from each call
+      const firstCall = vi.mocked(inputWithEsc).mock.calls[0][0];
+      const secondCall = vi.mocked(inputWithEsc).mock.calls[1][0];
+      const baseBranchValidate = firstCall.validate;
+      const targetBranchValidate = secondCall.validate;
 
       if (typeof baseBranchValidate === 'function') {
         vi.mocked(validateBranchName).mockReturnValue({ valid: true });
@@ -491,7 +487,7 @@ describe('add-states', () => {
       const result = await addConfirmClone(input);
 
       expect(result.value.confirmed).toBe(true);
-      expect(wrappedPrompt).not.toHaveBeenCalled();
+      expect(confirmWithEsc).not.toHaveBeenCalled();
     });
 
     test('should prompt for confirmation when skipConfirmation is false', async () => {
@@ -503,19 +499,18 @@ describe('add-states', () => {
         skipConfirmation: false,
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ confirm: true });
+      vi.mocked(confirmWithEsc).mockResolvedValue(true);
 
       const result = await addConfirmClone(input);
 
       expect(result.value.confirmed).toBe(true);
       expect(console.log).toHaveBeenCalled();
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(confirmWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'confirm',
-          name: 'confirm',
           message: 'Continue?',
-        }),
-      ]);
+          default: true,
+        })
+      );
     });
 
     test('should allow declining confirmation', async () => {
@@ -526,7 +521,7 @@ describe('add-states', () => {
         targetPath: '/root/user/repo/feature',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ confirm: false });
+      vi.mocked(confirmWithEsc).mockResolvedValue(false);
 
       const result = await addConfirmClone(input);
 
@@ -541,12 +536,12 @@ describe('add-states', () => {
         availableCacheOwners: ['owner1', 'owner2'],
       };
 
-      vi.mocked(search).mockResolvedValue('owner1');
+      vi.mocked(searchWithEsc).mockResolvedValue('owner1');
 
       const result = await addSelectCacheOwner(input);
 
       expect(result.value.owner).toBe('owner1');
-      expect(search).toHaveBeenCalled();
+      expect(searchWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error if no cached owners', async () => {
@@ -567,12 +562,12 @@ describe('add-states', () => {
         availableCacheRepos: ['repo1', 'repo2'],
       };
 
-      vi.mocked(search).mockResolvedValue('repo1');
+      vi.mocked(searchWithEsc).mockResolvedValue('repo1');
 
       const result = await addSelectCacheRepo(input);
 
       expect(result.value.repo).toBe('repo1');
-      expect(search).toHaveBeenCalled();
+      expect(searchWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error if no cached repos', async () => {

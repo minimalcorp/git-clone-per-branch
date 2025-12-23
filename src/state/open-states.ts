@@ -3,7 +3,7 @@
  * Each state is an independent function with explicit parameters
  */
 
-import { wrappedPrompt } from '../utils/prompt-wrapper.js';
+import { selectWithEsc } from '../utils/inquirer-helpers.js';
 import type {
   OpenSelectBranchInput,
   OpenSelectBranchOutput,
@@ -40,17 +40,13 @@ export async function openSelectOrg(
     orgCounts.set(r.owner, (orgCounts.get(r.owner) || 0) + 1);
   });
 
-  const { org } = await wrappedPrompt<{ org: string }>([
-    {
-      type: 'list',
-      name: 'org',
-      message: 'Select organization:',
-      choices: orgs.map((o) => ({
-        name: `${o} (${orgCounts.get(o)} repos)`,
-        value: o,
-      })),
-    },
-  ]);
+  const org = await selectWithEsc<string>({
+    message: 'Select organization:',
+    choices: orgs.map((o) => ({
+      name: `${o} (${orgCounts.get(o)} repos)`,
+      value: o,
+    })),
+  });
 
   return {
     value: { org },
@@ -79,17 +75,13 @@ export async function openSelectRepo(
     throw new Error('No repositories found');
   }
 
-  const { repo } = await wrappedPrompt<{ repo: string }>([
-    {
-      type: 'list',
-      name: 'repo',
-      message: 'Select repository:',
-      choices: orgRepos.map((r) => ({
-        name: `${r.repo} (${r.branches.length} branches)`,
-        value: r.repo,
-      })),
-    },
-  ]);
+  const repo = await selectWithEsc<string>({
+    message: 'Select repository:',
+    choices: orgRepos.map((r) => ({
+      name: `${r.repo} (${r.branches.length} branches)`,
+      value: r.repo,
+    })),
+  });
 
   return {
     value: { repo },
@@ -115,14 +107,10 @@ export async function openSelectBranch(
     throw new Error('No branches found');
   }
 
-  const { selectedBranch } = await wrappedPrompt<{ selectedBranch: string }>([
-    {
-      type: 'list',
-      name: 'selectedBranch',
-      message: 'Select branch to open:',
-      choices: branches.map((b) => ({ name: b, value: b })),
-    },
-  ]);
+  const selectedBranch = await selectWithEsc<string>({
+    message: 'Select branch to open:',
+    choices: branches.map((b) => ({ name: b, value: b })),
+  });
 
   return {
     value: { branch: selectedBranch },

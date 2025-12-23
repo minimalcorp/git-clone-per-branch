@@ -4,6 +4,7 @@
  */
 
 import path from 'path';
+import chalk from 'chalk';
 import { getCachedOwners, getCachedRepos } from '../core/cache-scanner.js';
 import { cloneRepository } from '../core/clone.js';
 import { detectContext } from '../core/context-detector.js';
@@ -21,7 +22,7 @@ import {
   addSelectOwner,
   addSelectRepo,
 } from '../state/add-states.js';
-import type { CloneResult } from '../types/index.js';
+import { type CloneResult, EscapeCancelError } from '../types/index.js';
 import type { Logger } from '../utils/logger.js';
 import { sanitizeBranchName } from '../utils/validators.js';
 
@@ -90,6 +91,16 @@ export async function executeAddCommand(
       cloneResult,
     };
   } catch (error) {
+    // EscapeCancelError should propagate to CLI for menu navigation
+    if (error instanceof EscapeCancelError) {
+      throw error;
+    }
+
+    // ExitPromptError should propagate to CLI for immediate exit
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+      throw error;
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error(`Failed to clone: ${errorMessage}`);
     return { success: false, error: errorMessage };
@@ -281,6 +292,13 @@ export async function executeAddCommandInteractive(
       sanitizeBranchName(targetBranch)
     );
 
+    // Display summary before confirmation
+    console.log('');
+    console.log(chalk.bold('Repository Details:'));
+    console.log('  URL:           ' + chalk.cyan(url));
+    console.log('  Remote branch: ' + chalk.cyan(baseBranch));
+    console.log('  Local branch:  ' + chalk.cyan(targetBranch));
+
     // State 8: Final confirmation
     const confirmResult = await addConfirmClone({
       url,
@@ -322,6 +340,16 @@ export async function executeAddCommandInteractive(
       cloneResult,
     };
   } catch (error) {
+    // EscapeCancelError should propagate to CLI for menu navigation
+    if (error instanceof EscapeCancelError) {
+      throw error;
+    }
+
+    // ExitPromptError should propagate to CLI for immediate exit
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+      throw error;
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     if (logger) {
       logger.error(`Failed to clone: ${errorMessage}`);

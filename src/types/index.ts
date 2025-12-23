@@ -44,6 +44,13 @@ export class GCPBError extends Error {
   }
 }
 
+export class EscapeCancelError extends Error {
+  constructor(message = 'Operation cancelled with ESC key') {
+    super(message);
+    this.name = 'EscapeCancelError';
+  }
+}
+
 // Configuration interfaces
 export interface Config {
   version: string;
