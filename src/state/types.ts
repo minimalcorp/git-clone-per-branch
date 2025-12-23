@@ -17,14 +17,15 @@ export interface StateResult<T> {
 // ============================================================================
 
 /**
- * addSelectMode: Choose between manual URL entry or select from existing owners
+ * addSelectMode: Choose between manual URL entry or select from existing owners/cache
  */
 export interface AddSelectModeInput {
   hasExistingOwners: boolean;
+  hasCachedOwners: boolean;
 }
 
 export interface AddSelectModeOutput {
-  mode: 'manual' | 'select';
+  mode: 'manual' | 'select' | 'cache';
 }
 
 /**
@@ -74,6 +75,44 @@ export interface AddConfirmUrlInput {
 
 export interface AddConfirmUrlOutput {
   useDetected: boolean;
+}
+
+/**
+ * addSelectCacheOwner: Select organization from cache
+ */
+export interface AddSelectCacheOwnerInput {
+  rootDir: string;
+  availableCacheOwners: string[];
+}
+
+export interface AddSelectCacheOwnerOutput {
+  owner: string;
+}
+
+/**
+ * addSelectCacheRepo: Select repository from cache
+ */
+export interface AddSelectCacheRepoInput {
+  rootDir: string;
+  owner: string;
+  availableCacheRepos: string[];
+}
+
+export interface AddSelectCacheRepoOutput {
+  repo: string;
+}
+
+/**
+ * addResolveCacheUrl: Get repository URL from cache
+ */
+export interface AddResolveCacheUrlInput {
+  rootDir: string;
+  owner: string;
+  repo: string;
+}
+
+export interface AddResolveCacheUrlOutput {
+  url: string | null;
 }
 
 /**

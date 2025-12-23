@@ -187,7 +187,7 @@ export async function executeRemoveCommandInteractive(
         await fs.remove(branchPath);
         removed++;
         if (total > 1) {
-          logger.startSpinner(`Removed ${removed}/${total} branches...`);
+          logger.updateSpinner(`Removed ${removed}/${total} branches...`);
         }
       }
       logger.stopSpinner(
