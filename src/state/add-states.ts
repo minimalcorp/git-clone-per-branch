@@ -13,8 +13,10 @@ import {
   inputWithEsc,
   confirmWithEsc,
   selectWithEsc,
+  withProcessing,
 } from '../utils/inquirer-helpers.js';
 import { validateBranchName, validateGitUrl } from '../utils/validators.js';
+import chalk from 'chalk';
 import type {
   AddConfigureBranchesInput,
   AddConfigureBranchesOutput,
@@ -74,6 +76,13 @@ export async function addSelectMode(
     choices,
   });
 
+  const modeLabels = {
+    manual: 'Manual URL entry',
+    select: 'Select from existing repositories',
+    cache: 'Select from cached repositories',
+  };
+  console.log(chalk.green('✓') + ' Mode: ' + chalk.cyan(modeLabels[mode]));
+
   return {
     value: { mode },
   };
@@ -103,6 +112,8 @@ export async function addSelectOwner(
     },
   });
 
+  console.log(chalk.green('✓') + ' Owner: ' + chalk.cyan(owner));
+
   return {
     value: { owner },
   };
@@ -131,6 +142,8 @@ export async function addSelectRepo(
       );
     },
   });
+
+  console.log(chalk.green('✓') + ' Repository: ' + chalk.cyan(repo));
 
   return {
     value: { repo },
@@ -206,6 +219,8 @@ export async function addEnterUrl(
     },
   });
 
+  console.log(chalk.green('✓') + ' Repository URL: ' + chalk.cyan(cloneUrl));
+
   return {
     value: { url: cloneUrl },
   };
@@ -219,8 +234,10 @@ export async function addConfigureBranches(
 ): Promise<StateResult<AddConfigureBranchesOutput>> {
   const { url, rootDir, owner, repo } = input;
 
-  // Detect default branch
-  const defaultBranch = await detectDefaultBranch(url, rootDir, owner, repo);
+  // Detect default branch with processing indicator
+  const defaultBranch = await withProcessing('Detecting default branch...', () =>
+    detectDefaultBranch(url, rootDir, owner, repo)
+  );
 
   const baseBranch = await inputWithEsc({
     message: 'Enter the remote branch name:',
@@ -232,6 +249,8 @@ export async function addConfigureBranches(
     },
   });
 
+  console.log(chalk.green('✓') + ' Remote branch: ' + chalk.cyan(baseBranch));
+
   const targetBranch = await inputWithEsc({
     message: 'Enter the local branch name:',
     validate: (branchInput: string) => {
@@ -239,6 +258,8 @@ export async function addConfigureBranches(
       return validation.valid || validation.error || 'Invalid branch name';
     },
   });
+
+  console.log(chalk.green('✓') + ' Local branch: ' + chalk.cyan(targetBranch));
 
   return {
     value: {
@@ -303,6 +324,8 @@ export async function addSelectCacheOwner(
     },
   });
 
+  console.log(chalk.green('✓') + ' Cached owner: ' + chalk.cyan(owner));
+
   return {
     value: { owner },
   };
@@ -331,6 +354,8 @@ export async function addSelectCacheRepo(
       );
     },
   });
+
+  console.log(chalk.green('✓') + ' Cached repository: ' + chalk.cyan(repo));
 
   return {
     value: { repo },

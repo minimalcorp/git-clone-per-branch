@@ -33,6 +33,7 @@ vi.mock('../../../src/utils/inquirer-helpers.js', () => ({
   confirmWithEsc: vi.fn(),
   selectWithEsc: vi.fn(),
   checkboxWithEsc: vi.fn(),
+  withProcessing: vi.fn((message, processingFn) => processingFn()),
 }));
 
 vi.mock('../../../src/utils/validators.js', () => ({
@@ -75,8 +76,15 @@ import { detectDefaultBranch } from '../../../src/core/default-branch-detector.j
 import { getCacheUrl } from '../../../src/core/cache-scanner.js';
 
 describe('add-states', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   describe('addSelectMode', () => {
@@ -299,9 +307,8 @@ describe('add-states', () => {
       expect(console.log).toHaveBeenCalled();
       expect(confirmWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'confirm',
-          name: 'useDetectedUrl',
           message: 'Use this repository URL?',
+          default: true,
         })
       );
     });
@@ -324,9 +331,7 @@ describe('add-states', () => {
     test('should prompt for manual URL entry', async () => {
       const input: AddEnterUrlInput = {};
 
-      vi.mocked(inputWithEsc).mockResolvedValue({
-        cloneUrl: 'https://github.com/user/repo.git',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValue('https://github.com/user/repo.git');
       vi.mocked(validateGitUrl).mockReturnValue({ valid: true });
       vi.mocked(parseGitUrl).mockReturnValue({
         owner: 'user',
@@ -339,8 +344,6 @@ describe('add-states', () => {
       expect(result.value.url).toBe('https://github.com/user/repo.git');
       expect(inputWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'input',
-          name: 'cloneUrl',
           message: 'Enter the Git repository URL:',
           validate: expect.any(Function),
         })
@@ -350,14 +353,13 @@ describe('add-states', () => {
     test('should validate URL format', async () => {
       const input: AddEnterUrlInput = {};
 
-      vi.mocked(inputWithEsc).mockResolvedValue({
-        cloneUrl: 'https://github.com/user/repo.git',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValue('https://github.com/user/repo.git');
 
       await addEnterUrl(input);
 
       // Get the validate function
-      const validateFn = vi.mocked(inputWithEsc).mock.calls[0][0][0].validate;
+      const config = vi.mocked(inputWithEsc).mock.calls[0][0];
+      const validateFn = config.validate;
       if (typeof validateFn === 'function') {
         // Test invalid URL
         vi.mocked(validateGitUrl).mockReturnValue({
@@ -388,10 +390,7 @@ describe('add-states', () => {
       };
 
       vi.mocked(detectDefaultBranch).mockResolvedValue('main');
-      vi.mocked(inputWithEsc).mockResolvedValue({
-        baseBranch: 'main',
-        targetBranch: 'feature-branch',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValueOnce('main').mockResolvedValueOnce('feature-branch');
       vi.mocked(validateBranchName).mockReturnValue({ valid: true });
 
       const result = await addConfigureBranches(input);
@@ -416,19 +415,16 @@ describe('add-states', () => {
       };
 
       vi.mocked(detectDefaultBranch).mockResolvedValue('develop');
-      vi.mocked(inputWithEsc).mockResolvedValue({
-        baseBranch: 'develop',
-        targetBranch: 'feature',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValueOnce('develop').mockResolvedValueOnce('feature');
 
       await addConfigureBranches(input);
 
-      expect(inputWithEsc).toHaveBeenCalledWith(
+      expect(inputWithEsc).toHaveBeenNthCalledWith(
+        1,
         expect.objectContaining({
-          name: 'baseBranch',
+          message: 'Enter the remote branch name:',
           default: 'develop',
-        }),
-        expect.any(Object)
+        })
       );
     });
 
@@ -441,17 +437,15 @@ describe('add-states', () => {
       };
 
       vi.mocked(detectDefaultBranch).mockResolvedValue('main');
-      vi.mocked(inputWithEsc).mockResolvedValue({
-        baseBranch: 'main',
-        targetBranch: 'feature',
-      });
+      vi.mocked(inputWithEsc).mockResolvedValueOnce('main').mockResolvedValueOnce('feature');
 
       await addConfigureBranches(input);
 
-      // Get validate functions
-      const questions = vi.mocked(inputWithEsc).mock.calls[0][0];
-      const baseBranchValidate = questions[0].validate;
-      const targetBranchValidate = questions[1].validate;
+      // Get validate functions from each call
+      const firstCall = vi.mocked(inputWithEsc).mock.calls[0][0];
+      const secondCall = vi.mocked(inputWithEsc).mock.calls[1][0];
+      const baseBranchValidate = firstCall.validate;
+      const targetBranchValidate = secondCall.validate;
 
       if (typeof baseBranchValidate === 'function') {
         vi.mocked(validateBranchName).mockReturnValue({ valid: true });
@@ -505,7 +499,7 @@ describe('add-states', () => {
         skipConfirmation: false,
       };
 
-      vi.mocked(confirmWithEsc).mockResolvedValue({ confirm: true });
+      vi.mocked(confirmWithEsc).mockResolvedValue(true);
 
       const result = await addConfirmClone(input);
 
@@ -513,9 +507,8 @@ describe('add-states', () => {
       expect(console.log).toHaveBeenCalled();
       expect(confirmWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'confirm',
-          name: 'confirm',
           message: 'Continue?',
+          default: true,
         })
       );
     });
@@ -528,7 +521,7 @@ describe('add-states', () => {
         targetPath: '/root/user/repo/feature',
       };
 
-      vi.mocked(confirmWithEsc).mockResolvedValue({ confirm: false });
+      vi.mocked(confirmWithEsc).mockResolvedValue(false);
 
       const result = await addConfirmClone(input);
 
@@ -543,12 +536,12 @@ describe('add-states', () => {
         availableCacheOwners: ['owner1', 'owner2'],
       };
 
-      vi.mocked(search).mockResolvedValue('owner1');
+      vi.mocked(searchWithEsc).mockResolvedValue('owner1');
 
       const result = await addSelectCacheOwner(input);
 
       expect(result.value.owner).toBe('owner1');
-      expect(search).toHaveBeenCalled();
+      expect(searchWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error if no cached owners', async () => {
@@ -569,12 +562,12 @@ describe('add-states', () => {
         availableCacheRepos: ['repo1', 'repo2'],
       };
 
-      vi.mocked(search).mockResolvedValue('repo1');
+      vi.mocked(searchWithEsc).mockResolvedValue('repo1');
 
       const result = await addSelectCacheRepo(input);
 
       expect(result.value.repo).toBe('repo1');
-      expect(search).toHaveBeenCalled();
+      expect(searchWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error if no cached repos', async () => {

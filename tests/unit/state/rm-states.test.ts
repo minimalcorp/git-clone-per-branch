@@ -47,9 +47,8 @@ describe('rm-states', () => {
       expect(result.value.org).toBe('org1');
       expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'list',
-          name: 'org',
           message: 'Select organization:',
+          choices: expect.any(Array),
         })
       );
     });
@@ -109,9 +108,8 @@ describe('rm-states', () => {
       expect(result.value.repo).toBe('repo1');
       expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'list',
-          name: 'repo',
           message: 'Select repository:',
+          choices: expect.any(Array),
         })
       );
     });
@@ -183,16 +181,15 @@ describe('rm-states', () => {
         branches: ['main', 'dev', 'staging'],
       };
 
-      vi.mocked(checkboxWithEsc).mockResolvedValue({ selectedBranches: ['main', 'dev'] });
+      vi.mocked(checkboxWithEsc).mockResolvedValue(['main', 'dev']);
 
       const result = await rmSelectBranches(input);
 
       expect(result.value.selectedBranches).toEqual(['main', 'dev']);
       expect(checkboxWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'checkbox',
-          name: 'selectedBranches',
           message: 'Select branches to remove:',
+          choices: expect.any(Array),
         })
       );
     });
@@ -215,7 +212,7 @@ describe('rm-states', () => {
         preselectedBranch: 'invalid-branch',
       };
 
-      vi.mocked(checkboxWithEsc).mockResolvedValue({ selectedBranches: ['main'] });
+      vi.mocked(checkboxWithEsc).mockResolvedValue(['main']);
 
       const result = await rmSelectBranches(input);
 
@@ -236,7 +233,7 @@ describe('rm-states', () => {
         branches: ['main', 'dev'],
       };
 
-      vi.mocked(checkboxWithEsc).mockResolvedValue({ selectedBranches: ['main'] });
+      vi.mocked(checkboxWithEsc).mockResolvedValue(['main']);
 
       await rmSelectBranches(input);
 
@@ -247,7 +244,8 @@ describe('rm-states', () => {
       );
 
       // Test the validation function
-      const validateFn = vi.mocked(checkboxWithEsc).mock.calls[0][0][0].validate;
+      const config = vi.mocked(checkboxWithEsc).mock.calls[0][0];
+      const validateFn = config.validate;
       if (typeof validateFn === 'function') {
         expect(validateFn([])).toBe('Please select at least one branch');
         expect(validateFn(['main'])).toBe(true);
@@ -274,15 +272,13 @@ describe('rm-states', () => {
         branches: ['main', 'dev'],
       };
 
-      vi.mocked(confirmWithEsc).mockResolvedValue({ confirm: true });
+      vi.mocked(confirmWithEsc).mockResolvedValue(true);
 
       const result = await rmConfirmRemoval(input);
 
       expect(result.value.confirmed).toBe(true);
       expect(confirmWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'confirm',
-          name: 'confirm',
           message: 'Are you sure you want to remove these branches?',
           default: false,
         })
@@ -312,7 +308,7 @@ describe('rm-states', () => {
         branches: ['main'],
       };
 
-      vi.mocked(confirmWithEsc).mockResolvedValue({ confirm: false });
+      vi.mocked(confirmWithEsc).mockResolvedValue(false);
 
       const result = await rmConfirmRemoval(input);
 

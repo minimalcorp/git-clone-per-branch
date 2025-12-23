@@ -4,6 +4,7 @@
  */
 
 import path from 'path';
+import chalk from 'chalk';
 import { getCachedOwners, getCachedRepos } from '../core/cache-scanner.js';
 import { cloneRepository } from '../core/clone.js';
 import { detectContext } from '../core/context-detector.js';
@@ -290,6 +291,13 @@ export async function executeAddCommandInteractive(
       parsed.repo,
       sanitizeBranchName(targetBranch)
     );
+
+    // Display summary before confirmation
+    console.log('');
+    console.log(chalk.bold('Repository Details:'));
+    console.log('  URL:           ' + chalk.cyan(url));
+    console.log('  Remote branch: ' + chalk.cyan(baseBranch));
+    console.log('  Local branch:  ' + chalk.cyan(targetBranch));
 
     // State 8: Final confirmation
     const confirmResult = await addConfirmClone({

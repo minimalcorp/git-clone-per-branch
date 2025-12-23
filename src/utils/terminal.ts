@@ -96,6 +96,58 @@ class TerminalManager {
   }
 
   /**
+   * Exit REPL mode cleanly with a message at bottom of terminal
+   * Ensures the message appears below all UI elements
+   */
+  exitWithMessage(message: string): void {
+    if (!process.stdout.isTTY) {
+      console.log(message);
+      return;
+    }
+
+    // Reset scroll region to full screen
+    this.resetScrollRegion();
+
+    // Move cursor to terminal bottom
+    const { rows } = this.getTerminalSize();
+    process.stdout.write(`\x1b[${rows};1H\n`);
+
+    // Print message
+    console.log(message);
+  }
+
+  /**
+   * Show processing indicator in menu area (REPL mode only)
+   * Displays a message in the menu area and hides the cursor
+   * @param message - Processing message to display
+   * @returns Cleanup function to hide the indicator
+   */
+  showProcessingInMenuArea(message: string): () => void {
+    if (!process.stdout.isTTY) {
+      return () => {}; // No-op for non-TTY
+    }
+
+    const { rows } = this.getTerminalSize();
+    const menuLines = 8;
+    const dividerLine = rows - menuLines;
+    const menuStartLine = dividerLine + 1;
+
+    // Hide cursor
+    process.stdout.write('\x1b[?25l');
+
+    // Show processing message in menu area (using drawFixedLine pattern)
+    this.drawFixedLine(menuStartLine, `⠋ ${message}`);
+
+    // Return cleanup function
+    return () => {
+      // Clear menu area
+      this.drawFixedLine(menuStartLine, '');
+      // Show cursor
+      process.stdout.write('\x1b[?25h');
+    };
+  }
+
+  /**
    * Restore terminal to normal state
    * This fixes the scroll-up issue when using @inquirer/prompts
    */

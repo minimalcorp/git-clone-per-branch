@@ -35,9 +35,8 @@ describe('open-states', () => {
       expect(result.value.org).toBe('org1');
       expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'list',
-          name: 'org',
           message: 'Select organization:',
+          choices: expect.any(Array),
         })
       );
     });
@@ -120,9 +119,8 @@ describe('open-states', () => {
       expect(result.value.repo).toBe('repo1');
       expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'list',
-          name: 'repo',
           message: 'Select repository:',
+          choices: expect.any(Array),
         })
       );
     });
@@ -224,9 +222,8 @@ describe('open-states', () => {
       expect(result.value.branch).toBe('main');
       expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'list',
-          name: 'selectedBranch',
           message: 'Select branch to open:',
+          choices: expect.any(Array),
         })
       );
     });

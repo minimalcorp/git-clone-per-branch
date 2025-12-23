@@ -70,8 +70,7 @@ program
       );
     } catch (error) {
       if (isCancellationError(error)) {
-        console.log('');
-        logger.info('Goodbye!');
+        terminalManager.exitWithMessage('ℹ Goodbye!');
         process.exit(0);
       }
       handleError(error, logger);
@@ -118,8 +117,7 @@ program
       }
     } catch (error) {
       if (isCancellationError(error)) {
-        console.log('');
-        logger.info('Goodbye!');
+        terminalManager.exitWithMessage('ℹ Goodbye!');
         process.exit(0);
       }
       handleError(error, logger);
@@ -155,8 +153,7 @@ program
       }
     } catch (error) {
       if (isCancellationError(error)) {
-        console.log('');
-        logger.info('Goodbye!');
+        terminalManager.exitWithMessage('ℹ Goodbye!');
         process.exit(0);
       }
       handleError(error, logger);
@@ -186,8 +183,7 @@ program
       }
     } catch (error) {
       if (isCancellationError(error)) {
-        console.log('');
-        logger.info('Goodbye!');
+        terminalManager.exitWithMessage('ℹ Goodbye!');
         process.exit(0);
       }
       handleError(error, logger);
@@ -297,11 +293,7 @@ async function runInteractiveMode(): Promise<void> {
         });
       } catch (_error) {
         // Ctrl+C or other errors - exit
-        if (layout && process.stdout.isTTY) {
-          terminalManager.resetScrollRegion();
-        }
-        console.log('');
-        logger.info('Goodbye!');
+        terminalManager.exitWithMessage('ℹ Goodbye!');
         process.exit(0);
       }
 
@@ -314,10 +306,7 @@ async function runInteractiveMode(): Promise<void> {
 
       // Handle exit
       if (command === 'exit') {
-        if (layout && process.stdout.isTTY) {
-          terminalManager.resetScrollRegion();
-        }
-        logger.info('Goodbye!');
+        terminalManager.exitWithMessage('ℹ Goodbye!');
         process.exit(0);
       }
 
@@ -411,11 +400,7 @@ async function runInteractiveMode(): Promise<void> {
     } catch (error) {
       // Ctrl+C - exit application (highest priority)
       if (error instanceof Error && error.name === 'ExitPromptError') {
-        if (layout && process.stdout.isTTY) {
-          terminalManager.resetScrollRegion();
-        }
-        console.log('');
-        logger.info('Goodbye!');
+        terminalManager.exitWithMessage('ℹ Goodbye!');
         process.exit(0);
       }
 
@@ -443,8 +428,7 @@ async function runInteractiveMode(): Promise<void> {
 
 // Handle Ctrl+C gracefully
 process.on('SIGINT', () => {
-  console.log(''); // Add blank line
-  logger.info('Goodbye!');
+  terminalManager.exitWithMessage('ℹ Goodbye!');
   process.exit(0);
 });
 
