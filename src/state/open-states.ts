@@ -40,7 +40,7 @@ export async function openSelectOrg(
     orgCounts.set(r.owner, (orgCounts.get(r.owner) || 0) + 1);
   });
 
-  const org = await selectWithEsc({
+  const org = await selectWithEsc<string>({
     message: 'Select organization:',
     choices: orgs.map((o) => ({
       name: `${o} (${orgCounts.get(o)} repos)`,
@@ -75,7 +75,7 @@ export async function openSelectRepo(
     throw new Error('No repositories found');
   }
 
-  const repo = await selectWithEsc({
+  const repo = await selectWithEsc<string>({
     message: 'Select repository:',
     choices: orgRepos.map((r) => ({
       name: `${r.repo} (${r.branches.length} branches)`,
@@ -107,7 +107,7 @@ export async function openSelectBranch(
     throw new Error('No branches found');
   }
 
-  const selectedBranch = await selectWithEsc({
+  const selectedBranch = await selectWithEsc<string>({
     message: 'Select branch to open:',
     choices: branches.map((b) => ({ name: b, value: b })),
   });

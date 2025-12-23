@@ -43,7 +43,7 @@ export async function rmSelectOrg(
     orgCounts.set(r.owner, (orgCounts.get(r.owner) || 0) + 1);
   });
 
-  const org = await selectWithEsc({
+  const org = await selectWithEsc<string>({
     message: 'Select organization:',
     choices: orgs.map((o) => ({
       name: `${o} (${orgCounts.get(o)} repos)`,
@@ -78,7 +78,7 @@ export async function rmSelectRepo(
     throw new Error('No repositories found');
   }
 
-  const repo = await selectWithEsc({
+  const repo = await selectWithEsc<string>({
     message: 'Select repository:',
     choices: orgRepos.map((r) => ({
       name: `${r.repo} (${r.branches.length} branches)`,
@@ -111,11 +111,11 @@ export async function rmSelectBranches(
     throw new Error('No branches found');
   }
 
-  const selectedBranches = await checkboxWithEsc({
+  const selectedBranches = await checkboxWithEsc<string>({
     message: 'Select branches to remove:',
     choices: branches.map((b) => ({ name: b, value: b })),
-    validate: (input: readonly string[]) => {
-      if (input.length === 0) {
+    validate: (choices) => {
+      if (choices.length === 0) {
         return 'Please select at least one branch';
       }
       return true;

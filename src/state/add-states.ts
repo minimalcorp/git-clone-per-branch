@@ -91,7 +91,7 @@ export async function addSelectOwner(
     throw new Error('No owners found');
   }
 
-  const owner = await searchWithEsc({
+  const owner = await searchWithEsc<string>({
     message: 'Select owner:',
     source: async (term: string | undefined) => {
       const searchTerm = term || '';
@@ -120,7 +120,7 @@ export async function addSelectRepo(
     throw new Error('No repositories found for this owner');
   }
 
-  const repo = await searchWithEsc({
+  const repo = await searchWithEsc<string>({
     message: 'Select repository:',
     source: async (term: string | undefined) => {
       const searchTerm = term || '';

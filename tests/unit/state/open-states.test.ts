@@ -6,12 +6,12 @@ import type {
   OpenSelectBranchInput,
 } from '../../../src/state/types.js';
 
-// Mock the prompt-wrapper module
-vi.mock('../../../src/utils/prompt-wrapper.js', () => ({
-  wrappedPrompt: vi.fn(),
+// Mock the inquirer-helpers module
+vi.mock('../../../src/utils/inquirer-helpers.js', () => ({
+  selectWithEsc: vi.fn(),
 }));
 
-import { wrappedPrompt } from '../../../src/utils/prompt-wrapper.js';
+import { selectWithEsc } from '../../../src/utils/inquirer-helpers.js';
 
 describe('open-states', () => {
   beforeEach(() => {
@@ -28,18 +28,18 @@ describe('open-states', () => {
         ],
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ org: 'org1' });
+      vi.mocked(selectWithEsc).mockResolvedValue('org1');
 
       const result = await openSelectOrg(input);
 
       expect(result.value.org).toBe('org1');
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'list',
           name: 'org',
           message: 'Select organization:',
-        }),
-      ]);
+        })
+      );
     });
 
     test('should skip prompt when preselected org is valid', async () => {
@@ -54,7 +54,7 @@ describe('open-states', () => {
       const result = await openSelectOrg(input);
 
       expect(result.value.org).toBe('org1');
-      expect(wrappedPrompt).not.toHaveBeenCalled();
+      expect(selectWithEsc).not.toHaveBeenCalled();
     });
 
     test('should prompt when preselected org is not valid', async () => {
@@ -63,12 +63,12 @@ describe('open-states', () => {
         preselectedOrg: 'invalid-org',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ org: 'org1' });
+      vi.mocked(selectWithEsc).mockResolvedValue('org1');
 
       const result = await openSelectOrg(input);
 
       expect(result.value.org).toBe('org1');
-      expect(wrappedPrompt).toHaveBeenCalled();
+      expect(selectWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error when no organizations found', async () => {
@@ -88,18 +88,18 @@ describe('open-states', () => {
         ],
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ org: 'org1' });
+      vi.mocked(selectWithEsc).mockResolvedValue('org1');
 
       await openSelectOrg(input);
 
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
           choices: [
             { name: 'org1 (2 repos)', value: 'org1' },
             { name: 'org2 (1 repos)', value: 'org2' },
           ],
-        }),
-      ]);
+        })
+      );
     });
   });
 
@@ -113,18 +113,18 @@ describe('open-states', () => {
         org: 'org1',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ repo: 'repo1' });
+      vi.mocked(selectWithEsc).mockResolvedValue('repo1');
 
       const result = await openSelectRepo(input);
 
       expect(result.value.repo).toBe('repo1');
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'list',
           name: 'repo',
           message: 'Select repository:',
-        }),
-      ]);
+        })
+      );
     });
 
     test('should skip prompt when preselected repo is valid', async () => {
@@ -140,7 +140,7 @@ describe('open-states', () => {
       const result = await openSelectRepo(input);
 
       expect(result.value.repo).toBe('repo1');
-      expect(wrappedPrompt).not.toHaveBeenCalled();
+      expect(selectWithEsc).not.toHaveBeenCalled();
     });
 
     test('should prompt when preselected repo is not valid', async () => {
@@ -150,12 +150,12 @@ describe('open-states', () => {
         preselectedRepo: 'invalid-repo',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ repo: 'repo1' });
+      vi.mocked(selectWithEsc).mockResolvedValue('repo1');
 
       const result = await openSelectRepo(input);
 
       expect(result.value.repo).toBe('repo1');
-      expect(wrappedPrompt).toHaveBeenCalled();
+      expect(selectWithEsc).toHaveBeenCalled();
     });
 
     test('should filter repositories by org', async () => {
@@ -167,15 +167,15 @@ describe('open-states', () => {
         org: 'org1',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ repo: 'repo1' });
+      vi.mocked(selectWithEsc).mockResolvedValue('repo1');
 
       await openSelectRepo(input);
 
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
           choices: [{ name: 'repo1 (1 branches)', value: 'repo1' }],
-        }),
-      ]);
+        })
+      );
     });
 
     test('should throw error when no repositories found', async () => {
@@ -196,18 +196,18 @@ describe('open-states', () => {
         org: 'org1',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ repo: 'repo1' });
+      vi.mocked(selectWithEsc).mockResolvedValue('repo1');
 
       await openSelectRepo(input);
 
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
           choices: [
             { name: 'repo1 (3 branches)', value: 'repo1' },
             { name: 'repo2 (1 branches)', value: 'repo2' },
           ],
-        }),
-      ]);
+        })
+      );
     });
   });
 
@@ -217,18 +217,18 @@ describe('open-states', () => {
         branches: ['main', 'dev', 'staging'],
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ selectedBranch: 'main' });
+      vi.mocked(selectWithEsc).mockResolvedValue('main');
 
       const result = await openSelectBranch(input);
 
       expect(result.value.branch).toBe('main');
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'list',
           name: 'selectedBranch',
           message: 'Select branch to open:',
-        }),
-      ]);
+        })
+      );
     });
 
     test('should skip prompt when preselected branch is valid', async () => {
@@ -240,7 +240,7 @@ describe('open-states', () => {
       const result = await openSelectBranch(input);
 
       expect(result.value.branch).toBe('dev');
-      expect(wrappedPrompt).not.toHaveBeenCalled();
+      expect(selectWithEsc).not.toHaveBeenCalled();
     });
 
     test('should prompt when preselected branch is not valid', async () => {
@@ -249,12 +249,12 @@ describe('open-states', () => {
         preselectedBranch: 'invalid-branch',
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ selectedBranch: 'main' });
+      vi.mocked(selectWithEsc).mockResolvedValue('main');
 
       const result = await openSelectBranch(input);
 
       expect(result.value.branch).toBe('main');
-      expect(wrappedPrompt).toHaveBeenCalled();
+      expect(selectWithEsc).toHaveBeenCalled();
     });
 
     test('should throw error when no branches found', async () => {
@@ -270,11 +270,11 @@ describe('open-states', () => {
         branches: ['main', 'dev', 'staging', 'feature/new'],
       };
 
-      vi.mocked(wrappedPrompt).mockResolvedValue({ selectedBranch: 'main' });
+      vi.mocked(selectWithEsc).mockResolvedValue('main');
 
       await openSelectBranch(input);
 
-      expect(wrappedPrompt).toHaveBeenCalledWith([
+      expect(selectWithEsc).toHaveBeenCalledWith(
         expect.objectContaining({
           choices: [
             { name: 'main', value: 'main' },
@@ -282,8 +282,8 @@ describe('open-states', () => {
             { name: 'staging', value: 'staging' },
             { name: 'feature/new', value: 'feature/new' },
           ],
-        }),
-      ]);
+        })
+      );
     });
   });
 });

@@ -1,13 +1,13 @@
 import * as readline from 'node:readline';
 import { search, input, confirm, select, checkbox } from '@inquirer/prompts';
-import type {
-  SearchConfig,
-  InputConfig,
-  ConfirmConfig,
-  SelectConfig,
-  CheckboxConfig,
-} from '@inquirer/prompts';
 import { EscapeCancelError } from '../types/index.js';
+
+// Extract config types from prompt function parameters
+type SearchConfig<Value> = Parameters<typeof search<Value>>[0];
+type InputConfig = Parameters<typeof input>[0];
+type ConfirmConfig = Parameters<typeof confirm>[0];
+type SelectConfig<Value> = Parameters<typeof select<Value>>[0];
+type CheckboxConfig<Value> = Parameters<typeof checkbox<Value>>[0];
 
 /**
  * ESC キーリスナーをセットアップして AbortController を返す
@@ -50,8 +50,7 @@ export async function searchWithEsc<Value>(config: SearchConfig<Value>): Promise
   const cleanup = setupEscListener(controller);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const result = await search(config, { signal: controller.signal });
+    const result = await search<Value>(config, { signal: controller.signal });
     cleanup();
     return result;
   } catch (error: unknown) {
@@ -72,7 +71,6 @@ export async function inputWithEsc(config: InputConfig): Promise<string> {
   const cleanup = setupEscListener(controller);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = await input(config, { signal: controller.signal });
     cleanup();
     return result;
@@ -94,7 +92,6 @@ export async function confirmWithEsc(config: ConfirmConfig): Promise<boolean> {
   const cleanup = setupEscListener(controller);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = await confirm(config, { signal: controller.signal });
     cleanup();
     return result;
@@ -116,8 +113,7 @@ export async function selectWithEsc<Value>(config: SelectConfig<Value>): Promise
   const cleanup = setupEscListener(controller);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const result = await select(config, { signal: controller.signal });
+    const result = await select<Value>(config, { signal: controller.signal });
     cleanup();
     return result;
   } catch (error: unknown) {
@@ -138,8 +134,7 @@ export async function checkboxWithEsc<Value>(config: CheckboxConfig<Value>): Pro
   const cleanup = setupEscListener(controller);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const result = await checkbox(config, { signal: controller.signal });
+    const result = await checkbox<Value>(config, { signal: controller.signal });
     cleanup();
     return result;
   } catch (error: unknown) {
