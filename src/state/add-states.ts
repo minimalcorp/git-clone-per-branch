@@ -4,6 +4,8 @@
  */
 
 import { search } from '@inquirer/prompts';
+import { getCachePath } from '../core/cache-manager.js';
+import { getCacheUrl } from '../core/cache-scanner.js';
 import { detectDefaultBranch } from '../core/default-branch-detector.js';
 import { resolveRemoteUrl } from '../core/remote-resolver.js';
 import { parseGitUrl } from '../core/url-parser.js';
@@ -18,8 +20,14 @@ import type {
   AddConfirmUrlOutput,
   AddEnterUrlInput,
   AddEnterUrlOutput,
+  AddResolveCacheUrlInput,
+  AddResolveCacheUrlOutput,
   AddResolveUrlInput,
   AddResolveUrlOutput,
+  AddSelectCacheOwnerInput,
+  AddSelectCacheOwnerOutput,
+  AddSelectCacheRepoInput,
+  AddSelectCacheRepoOutput,
   AddSelectModeInput,
   AddSelectModeOutput,
   AddSelectOwnerInput,
@@ -30,29 +38,39 @@ import type {
 } from './types.js';
 
 /**
- * State 1: Choose between manual URL entry or select from existing owners
+ * State 1: Choose between manual URL entry, select from cache, or select from existing owners
  */
 export async function addSelectMode(
   input: AddSelectModeInput
 ): Promise<StateResult<AddSelectModeOutput>> {
-  const { hasExistingOwners } = input;
+  const { hasExistingOwners, hasCachedOwners } = input;
 
-  // If no existing owners, skip to manual mode
-  if (!hasExistingOwners) {
+  // If no existing owners and no cache, skip to manual mode
+  if (!hasExistingOwners && !hasCachedOwners) {
     return {
       value: { mode: 'manual' },
     };
   }
 
-  const { mode } = await wrappedPrompt<{ mode: 'manual' | 'select' }>([
+  // Build choices based on what's available
+  const choices: Array<{ name: string; value: 'manual' | 'select' | 'cache' }> = [];
+
+  if (hasCachedOwners) {
+    choices.push({ name: 'Select from cached repositories', value: 'cache' });
+  }
+
+  if (hasExistingOwners) {
+    choices.push({ name: 'Select from existing cloned repositories', value: 'select' });
+  }
+
+  choices.push({ name: 'Enter repository URL manually', value: 'manual' });
+
+  const { mode } = await wrappedPrompt<{ mode: 'manual' | 'select' | 'cache' }>([
     {
       type: 'list',
       name: 'mode',
       message: 'How do you want to add a repository?',
-      choices: [
-        { name: 'Select from existing owners', value: 'select' },
-        { name: 'Enter repository URL manually', value: 'manual' },
-      ],
+      choices,
     },
   ]);
 
@@ -283,4 +301,88 @@ export async function addConfirmClone(
   return {
     value: { confirmed: confirm },
   };
+}
+
+/**
+ * State: Select organization from cache
+ */
+export async function addSelectCacheOwner(
+  input: AddSelectCacheOwnerInput
+): Promise<StateResult<AddSelectCacheOwnerOutput>> {
+  const { availableCacheOwners } = input;
+
+  if (availableCacheOwners.length === 0) {
+    throw new Error('No cached owners found');
+  }
+
+  const owner = await wrapPromptFunction(() =>
+    search({
+      message: 'Select cached owner:',
+      source: async (term) => {
+        const searchTerm = term || '';
+        return Promise.resolve(
+          availableCacheOwners
+            .filter((o: string) => o.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map((o: string) => ({ name: o, value: o }))
+        );
+      },
+    })
+  );
+
+  return {
+    value: { owner },
+  };
+}
+
+/**
+ * State: Select repository from cache under chosen owner
+ */
+export async function addSelectCacheRepo(
+  input: AddSelectCacheRepoInput
+): Promise<StateResult<AddSelectCacheRepoOutput>> {
+  const { availableCacheRepos } = input;
+
+  if (availableCacheRepos.length === 0) {
+    throw new Error('No cached repositories found for this owner');
+  }
+
+  const repo = await wrapPromptFunction(() =>
+    search({
+      message: 'Select cached repository:',
+      source: async (term) => {
+        const searchTerm = term || '';
+        return Promise.resolve(
+          availableCacheRepos
+            .filter((r: string) => r.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map((r: string) => ({ name: r, value: r }))
+        );
+      },
+    })
+  );
+
+  return {
+    value: { repo },
+  };
+}
+
+/**
+ * State: Get repository URL from cache
+ */
+export async function addResolveCacheUrl(
+  input: AddResolveCacheUrlInput
+): Promise<StateResult<AddResolveCacheUrlOutput>> {
+  const { rootDir, owner, repo } = input;
+
+  try {
+    const cachePath = getCachePath(rootDir, owner, repo);
+    const url = await getCacheUrl(cachePath);
+
+    return {
+      value: { url },
+    };
+  } catch {
+    return {
+      value: { url: null },
+    };
+  }
 }

@@ -4,6 +4,7 @@
  */
 
 import path from 'path';
+import { getCachedOwners, getCachedRepos } from '../core/cache-scanner.js';
 import { cloneRepository } from '../core/clone.js';
 import { detectContext } from '../core/context-detector.js';
 import { parseGitUrl } from '../core/url-parser.js';
@@ -12,7 +13,10 @@ import {
   addConfirmClone,
   addConfirmUrl,
   addEnterUrl,
+  addResolveCacheUrl,
   addResolveUrl,
+  addSelectCacheOwner,
+  addSelectCacheRepo,
   addSelectMode,
   addSelectOwner,
   addSelectRepo,
@@ -105,29 +109,83 @@ export async function executeAddCommandInteractive(
     // Detect context to provide smart defaults
     const context = await detectContext(rootDir, currentDir);
 
+    // Check for cached repositories
+    const cachedOwners = await getCachedOwners(rootDir);
+    const hasCachedOwners = cachedOwners.length > 0;
+
     let url: string | undefined;
     let owner: string | undefined;
     let repo: string | undefined;
 
-    // State 1: Select mode (manual vs select from existing)
-    // Only relevant at root level with existing owners
+    // State 1: Select mode (manual vs cache vs select from existing)
+    // Only relevant at root level with existing owners or cache
     if (
       context.location === 'root' &&
-      context.availableOwners &&
-      context.availableOwners.length > 0
+      (hasCachedOwners || (context.availableOwners && context.availableOwners.length > 0))
     ) {
       const modeResult = await addSelectMode({
-        hasExistingOwners: true,
+        hasExistingOwners: context.availableOwners ? context.availableOwners.length > 0 : false,
+        hasCachedOwners,
       });
 
-      if (modeResult.value.mode === 'manual') {
+      const mode = modeResult.value.mode;
+
+      if (mode === 'manual') {
         // User chose manual entry, skip to URL entry
         const urlResult = await addEnterUrl({});
         url = urlResult.value.url;
+      } else if (mode === 'cache') {
+        // Cache mode: select from cached repositories
+
+        // Select owner from cache
+        const cacheOwnerResult = await addSelectCacheOwner({
+          rootDir,
+          availableCacheOwners: cachedOwners,
+        });
+        owner = cacheOwnerResult.value.owner;
+
+        // Get cached repos for selected owner
+        const cachedRepos = await getCachedRepos(rootDir, owner);
+
+        if (cachedRepos.length === 0) {
+          if (logger) {
+            logger.warn('No cached repositories found for this owner.');
+          }
+          const urlResult = await addEnterUrl({});
+          url = urlResult.value.url;
+        } else {
+          // Select repo from cache
+          const cacheRepoResult = await addSelectCacheRepo({
+            rootDir,
+            owner,
+            availableCacheRepos: cachedRepos,
+          });
+          repo = cacheRepoResult.value.repo;
+
+          // Resolve URL from cache
+          const cacheUrlResult = await addResolveCacheUrl({
+            rootDir,
+            owner,
+            repo,
+          });
+
+          if (cacheUrlResult.value.url) {
+            url = cacheUrlResult.value.url;
+            if (logger) {
+              logger.info(`Using cached repository URL: ${url}`);
+            }
+          } else {
+            if (logger) {
+              logger.warn('Could not retrieve URL from cache.');
+            }
+            const urlResult = await addEnterUrl({});
+            url = urlResult.value.url;
+          }
+        }
       }
       // If mode === 'select', continue to owner selection below
     } else {
-      // No existing owners or not at root, go straight to manual URL entry
+      // No existing owners or cache, or not at root - go straight to manual URL entry
       const urlResult = await addEnterUrl({});
       url = urlResult.value.url;
     }

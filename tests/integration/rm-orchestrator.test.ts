@@ -29,6 +29,7 @@ describe('rm-orchestrator', () => {
     error: vi.fn(),
     debug: vi.fn(),
     startSpinner: vi.fn(),
+    updateSpinner: vi.fn(),
     stopSpinner: vi.fn(),
     box: vi.fn(),
   };

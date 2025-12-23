@@ -3,6 +3,9 @@ import {
   addSelectMode,
   addSelectOwner,
   addSelectRepo,
+  addSelectCacheOwner,
+  addSelectCacheRepo,
+  addResolveCacheUrl,
   addResolveUrl,
   addConfirmUrl,
   addEnterUrl,
@@ -13,6 +16,9 @@ import type {
   AddSelectModeInput,
   AddSelectOwnerInput,
   AddSelectRepoInput,
+  AddSelectCacheOwnerInput,
+  AddSelectCacheRepoInput,
+  AddResolveCacheUrlInput,
   AddResolveUrlInput,
   AddConfirmUrlInput,
   AddEnterUrlInput,
@@ -48,12 +54,21 @@ vi.mock('../../../src/core/default-branch-detector.js', () => ({
   detectDefaultBranch: vi.fn(),
 }));
 
+vi.mock('../../../src/core/cache-manager.js', () => ({
+  getCachePath: vi.fn((rootDir, owner, repo) => `${rootDir}/.gcpb/.cache/${owner}/${repo}`),
+}));
+
+vi.mock('../../../src/core/cache-scanner.js', () => ({
+  getCacheUrl: vi.fn(),
+}));
+
 import { wrappedPrompt, wrapPromptFunction } from '../../../src/utils/prompt-wrapper.js';
 import { search } from '@inquirer/prompts';
 import { validateGitUrl, validateBranchName } from '../../../src/utils/validators.js';
 import { parseGitUrl } from '../../../src/core/url-parser.js';
 import { resolveRemoteUrl } from '../../../src/core/remote-resolver.js';
 import { detectDefaultBranch } from '../../../src/core/default-branch-detector.js';
+import { getCacheUrl } from '../../../src/core/cache-scanner.js';
 
 describe('add-states', () => {
   beforeEach(() => {
@@ -61,10 +76,10 @@ describe('add-states', () => {
   });
 
   describe('addSelectMode', () => {
-    test('should return manual mode when no existing owners', async () => {
+    test('should return manual mode when no existing owners and no cache', async () => {
       const input: AddSelectModeInput = {
-        rootDir: '/root',
         hasExistingOwners: false,
+        hasCachedOwners: false,
       };
 
       const result = await addSelectMode(input);
@@ -75,8 +90,8 @@ describe('add-states', () => {
 
     test('should prompt for mode when existing owners available', async () => {
       const input: AddSelectModeInput = {
-        rootDir: '/root',
         hasExistingOwners: true,
+        hasCachedOwners: false,
       };
 
       vi.mocked(wrappedPrompt).mockResolvedValue({ mode: 'select' });
@@ -93,10 +108,24 @@ describe('add-states', () => {
       ]);
     });
 
+    test('should prompt for mode when cached owners available', async () => {
+      const input: AddSelectModeInput = {
+        hasExistingOwners: false,
+        hasCachedOwners: true,
+      };
+
+      vi.mocked(wrappedPrompt).mockResolvedValue({ mode: 'cache' });
+
+      const result = await addSelectMode(input);
+
+      expect(result.value.mode).toBe('cache');
+      expect(wrappedPrompt).toHaveBeenCalled();
+    });
+
     test('should allow selecting manual mode', async () => {
       const input: AddSelectModeInput = {
-        rootDir: '/root',
         hasExistingOwners: true,
+        hasCachedOwners: false,
       };
 
       vi.mocked(wrappedPrompt).mockResolvedValue({ mode: 'manual' });
@@ -502,6 +531,90 @@ describe('add-states', () => {
       const result = await addConfirmClone(input);
 
       expect(result.value.confirmed).toBe(false);
+    });
+  });
+
+  describe('addSelectCacheOwner', () => {
+    test('should select owner from cache', async () => {
+      const input: AddSelectCacheOwnerInput = {
+        rootDir: '/root',
+        availableCacheOwners: ['owner1', 'owner2'],
+      };
+
+      vi.mocked(search).mockResolvedValue('owner1');
+
+      const result = await addSelectCacheOwner(input);
+
+      expect(result.value.owner).toBe('owner1');
+      expect(search).toHaveBeenCalled();
+    });
+
+    test('should throw error if no cached owners', async () => {
+      const input: AddSelectCacheOwnerInput = {
+        rootDir: '/root',
+        availableCacheOwners: [],
+      };
+
+      await expect(addSelectCacheOwner(input)).rejects.toThrow('No cached owners found');
+    });
+  });
+
+  describe('addSelectCacheRepo', () => {
+    test('should select repo from cache', async () => {
+      const input: AddSelectCacheRepoInput = {
+        rootDir: '/root',
+        owner: 'owner1',
+        availableCacheRepos: ['repo1', 'repo2'],
+      };
+
+      vi.mocked(search).mockResolvedValue('repo1');
+
+      const result = await addSelectCacheRepo(input);
+
+      expect(result.value.repo).toBe('repo1');
+      expect(search).toHaveBeenCalled();
+    });
+
+    test('should throw error if no cached repos', async () => {
+      const input: AddSelectCacheRepoInput = {
+        rootDir: '/root',
+        owner: 'owner1',
+        availableCacheRepos: [],
+      };
+
+      await expect(addSelectCacheRepo(input)).rejects.toThrow(
+        'No cached repositories found for this owner'
+      );
+    });
+  });
+
+  describe('addResolveCacheUrl', () => {
+    test('should resolve URL from cache', async () => {
+      const input: AddResolveCacheUrlInput = {
+        rootDir: '/root',
+        owner: 'owner1',
+        repo: 'repo1',
+      };
+
+      vi.mocked(getCacheUrl).mockResolvedValue('https://github.com/owner1/repo1.git');
+
+      const result = await addResolveCacheUrl(input);
+
+      expect(result.value.url).toBe('https://github.com/owner1/repo1.git');
+    });
+
+    test('should return null if URL cannot be retrieved', async () => {
+      const input: AddResolveCacheUrlInput = {
+        rootDir: '/root',
+        owner: 'owner1',
+        repo: 'repo1',
+      };
+
+      vi.mocked(getCacheUrl).mockRejectedValue(new Error('No origin'));
+
+      const result = await addResolveCacheUrl(input);
+
+      expect(result.value.url).toBeNull();
     });
   });
 });

@@ -9,6 +9,7 @@ import {
   sanitizeBranchName,
   validateRemoteBranchNotExists,
 } from '../utils/validators.js';
+import { getCacheInfo, createCache, updateCache, removeCache } from './cache-manager.js';
 
 /**
  * Get the default branch name from the remote repository
@@ -57,14 +58,56 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
     // 4. Create parent directories if needed
     await fs.ensureDir(path.dirname(targetPath));
 
-    // 5. Execute git clone to target directory
-    const git = simpleGit();
-    await git.clone(options.cloneUrl, targetPath);
+    // 5. Prepare cache (if possible)
+    let useCache = true;
+    let cachePath: string | undefined;
 
-    // 6. Navigate into cloned repo
+    try {
+      const cacheInfo = await getCacheInfo(parsed.owner, parsed.repo, options.rootDir);
+      cachePath = cacheInfo.cachePath;
+
+      if (!cacheInfo.exists) {
+        // Cache doesn't exist - create mirror cache
+        await createCache({
+          url: options.cloneUrl,
+          owner: parsed.owner,
+          repo: parsed.repo,
+          rootDir: options.rootDir,
+        });
+      } else if (cacheInfo.isValid) {
+        // Cache exists and is valid - update it
+        await updateCache(cachePath);
+      } else {
+        // Cache is corrupted - remove and recreate
+        await removeCache(cachePath);
+        await createCache({
+          url: options.cloneUrl,
+          owner: parsed.owner,
+          repo: parsed.repo,
+          rootDir: options.rootDir,
+        });
+      }
+    } catch {
+      // Cache operation failed - fall back to direct clone
+      useCache = false;
+      cachePath = undefined;
+      // Log warning but don't fail the operation
+    }
+
+    // 6. Execute git clone to target directory
+    const git = simpleGit();
+    if (useCache && cachePath) {
+      // Clone with reference and dissociate for full independence
+      await git.clone(options.cloneUrl, targetPath, ['--reference', cachePath, '--dissociate']);
+    } else {
+      // Direct clone (no cache)
+      await git.clone(options.cloneUrl, targetPath);
+    }
+
+    // 7. Navigate into cloned repo
     const repoGit = simpleGit(targetPath);
 
-    // 6a. Validate: If creating a new local branch, ensure it doesn't exist on remote
+    // 7a. Validate: If creating a new local branch, ensure it doesn't exist on remote
     if (options.baseBranch !== options.targetBranch) {
       const branchValidation = await validateRemoteBranchNotExists(repoGit, options.targetBranch);
       if (!branchValidation.valid) {
@@ -75,13 +118,13 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
       }
     }
 
-    // 7. Get the default branch name
+    // 8. Get the default branch name
     const defaultBranch = await getDefaultBranch(repoGit);
 
-    // 8. Normalize remote branch name (remove origin/ prefix if present)
+    // 9. Normalize remote branch name (remove origin/ prefix if present)
     const baseBranch = options.baseBranch.replace(/^origin\//, '');
 
-    // 9. Handle branch checkout based on scenario
+    // 10. Handle branch checkout based on scenario
     if (baseBranch === options.targetBranch) {
       // Case: remote == local (working on existing branch)
 
