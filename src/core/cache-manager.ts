@@ -1,7 +1,7 @@
-import simpleGit, { type SimpleGit } from 'simple-git';
+import simpleGit from 'simple-git';
 import path from 'path';
 import fs from 'fs-extra';
-import type { CacheInfo, CacheOptions, CacheResult } from '../types/index.js';
+import type { CacheInfo, CacheOptions } from '../types/index.js';
 
 const CONFIG_DIR = '.gcpb';
 const CACHE_DIR = '.cache';

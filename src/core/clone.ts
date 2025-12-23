@@ -9,12 +9,7 @@ import {
   sanitizeBranchName,
   validateRemoteBranchNotExists,
 } from '../utils/validators.js';
-import {
-  getCacheInfo,
-  createCache,
-  updateCache,
-  removeCache,
-} from './cache-manager.js';
+import { getCacheInfo, createCache, updateCache, removeCache } from './cache-manager.js';
 
 /**
  * Get the default branch name from the remote repository
@@ -92,7 +87,7 @@ export async function cloneRepository(options: CloneOptions): Promise<CloneResul
           rootDir: options.rootDir,
         });
       }
-    } catch (error) {
+    } catch {
       // Cache operation failed - fall back to direct clone
       useCache = false;
       cachePath = undefined;
