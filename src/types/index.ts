@@ -85,3 +85,23 @@ export interface RemoteUrlResult {
   url?: string;
   source?: string;
 }
+
+// Cache management interfaces
+export interface CacheInfo {
+  cachePath: string;
+  exists: boolean;
+  isValid: boolean;
+}
+
+export interface CacheOptions {
+  url: string;
+  owner: string;
+  repo: string;
+  rootDir: string;
+}
+
+export interface CacheResult {
+  success: boolean;
+  cachePath?: string;
+  error?: Error;
+}
