@@ -4,7 +4,7 @@
  */
 
 import path from 'path';
-import { wrappedPrompt } from '../utils/prompt-wrapper.js';
+import { selectWithEsc, checkboxWithEsc, confirmWithEsc } from '../utils/inquirer-helpers.js';
 import type {
   RmConfirmRemovalInput,
   RmConfirmRemovalOutput,
@@ -43,17 +43,13 @@ export async function rmSelectOrg(
     orgCounts.set(r.owner, (orgCounts.get(r.owner) || 0) + 1);
   });
 
-  const { org } = await wrappedPrompt<{ org: string }>([
-    {
-      type: 'list',
-      name: 'org',
-      message: 'Select organization:',
-      choices: orgs.map((o) => ({
-        name: `${o} (${orgCounts.get(o)} repos)`,
-        value: o,
-      })),
-    },
-  ]);
+  const org = await selectWithEsc({
+    message: 'Select organization:',
+    choices: orgs.map((o) => ({
+      name: `${o} (${orgCounts.get(o)} repos)`,
+      value: o,
+    })),
+  });
 
   return {
     value: { org },
@@ -82,17 +78,13 @@ export async function rmSelectRepo(
     throw new Error('No repositories found');
   }
 
-  const { repo } = await wrappedPrompt<{ repo: string }>([
-    {
-      type: 'list',
-      name: 'repo',
-      message: 'Select repository:',
-      choices: orgRepos.map((r) => ({
-        name: `${r.repo} (${r.branches.length} branches)`,
-        value: r.repo,
-      })),
-    },
-  ]);
+  const repo = await selectWithEsc({
+    message: 'Select repository:',
+    choices: orgRepos.map((r) => ({
+      name: `${r.repo} (${r.branches.length} branches)`,
+      value: r.repo,
+    })),
+  });
 
   return {
     value: { repo },
@@ -119,20 +111,16 @@ export async function rmSelectBranches(
     throw new Error('No branches found');
   }
 
-  const { selectedBranches } = await wrappedPrompt<{ selectedBranches: string[] }>([
-    {
-      type: 'checkbox',
-      name: 'selectedBranches',
-      message: 'Select branches to remove:',
-      choices: branches.map((b) => ({ name: b, value: b })),
-      validate: (input: string[]) => {
-        if (input.length === 0) {
-          return 'Please select at least one branch';
-        }
-        return true;
-      },
+  const selectedBranches = await checkboxWithEsc({
+    message: 'Select branches to remove:',
+    choices: branches.map((b) => ({ name: b, value: b })),
+    validate: (input: readonly string[]) => {
+      if (input.length === 0) {
+        return 'Please select at least one branch';
+      }
+      return true;
     },
-  ]);
+  });
 
   return {
     value: { selectedBranches },
@@ -165,14 +153,10 @@ export async function rmConfirmRemoval(
   }
   console.log('');
 
-  const { confirm } = await wrappedPrompt<{ confirm: boolean }>([
-    {
-      type: 'confirm',
-      name: 'confirm',
-      message: 'Are you sure you want to remove these branches?',
-      default: false,
-    },
-  ]);
+  const confirm = await confirmWithEsc({
+    message: 'Are you sure you want to remove these branches?',
+    default: false,
+  });
 
   return {
     value: { confirmed: confirm },

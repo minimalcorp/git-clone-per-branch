@@ -3,13 +3,17 @@
  * Each state is an independent function with explicit parameters
  */
 
-import { search } from '@inquirer/prompts';
 import { getCachePath } from '../core/cache-manager.js';
 import { getCacheUrl } from '../core/cache-scanner.js';
 import { detectDefaultBranch } from '../core/default-branch-detector.js';
 import { resolveRemoteUrl } from '../core/remote-resolver.js';
 import { parseGitUrl } from '../core/url-parser.js';
-import { wrappedPrompt, wrapPromptFunction } from '../utils/prompt-wrapper.js';
+import {
+  searchWithEsc,
+  inputWithEsc,
+  confirmWithEsc,
+  selectWithEsc,
+} from '../utils/inquirer-helpers.js';
 import { validateBranchName, validateGitUrl } from '../utils/validators.js';
 import type {
   AddConfigureBranchesInput,
@@ -65,14 +69,10 @@ export async function addSelectMode(
 
   choices.push({ name: 'Enter repository URL manually', value: 'manual' });
 
-  const { mode } = await wrappedPrompt<{ mode: 'manual' | 'select' | 'cache' }>([
-    {
-      type: 'list',
-      name: 'mode',
-      message: 'How do you want to add a repository?',
-      choices,
-    },
-  ]);
+  const mode = await selectWithEsc<'manual' | 'select' | 'cache'>({
+    message: 'How do you want to add a repository?',
+    choices,
+  });
 
   return {
     value: { mode },
@@ -91,19 +91,17 @@ export async function addSelectOwner(
     throw new Error('No owners found');
   }
 
-  const owner = await wrapPromptFunction(() =>
-    search({
-      message: 'Select owner:',
-      source: async (term) => {
-        const searchTerm = term || '';
-        return Promise.resolve(
-          availableOwners
-            .filter((o: string) => o.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((o: string) => ({ name: o, value: o }))
-        );
-      },
-    })
-  );
+  const owner = await searchWithEsc({
+    message: 'Select owner:',
+    source: async (term: string | undefined) => {
+      const searchTerm = term || '';
+      return Promise.resolve(
+        availableOwners
+          .filter((o: string) => o.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map((o: string) => ({ name: o, value: o }))
+      );
+    },
+  });
 
   return {
     value: { owner },
@@ -122,19 +120,17 @@ export async function addSelectRepo(
     throw new Error('No repositories found for this owner');
   }
 
-  const repo = await wrapPromptFunction(() =>
-    search({
-      message: 'Select repository:',
-      source: async (term) => {
-        const searchTerm = term || '';
-        return Promise.resolve(
-          availableRepos
-            .filter((r: string) => r.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((r: string) => ({ name: r, value: r }))
-        );
-      },
-    })
-  );
+  const repo = await searchWithEsc({
+    message: 'Select repository:',
+    source: async (term: string | undefined) => {
+      const searchTerm = term || '';
+      return Promise.resolve(
+        availableRepos
+          .filter((r: string) => r.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map((r: string) => ({ name: r, value: r }))
+      );
+    },
+  });
 
   return {
     value: { repo },
@@ -178,14 +174,10 @@ export async function addConfirmUrl(
   console.log(`Found repository URL from "${detectedFrom}" branch:`);
   console.log(`  ${url}\n`);
 
-  const { useDetectedUrl } = await wrappedPrompt<{ useDetectedUrl: boolean }>([
-    {
-      type: 'confirm',
-      name: 'useDetectedUrl',
-      message: 'Use this repository URL?',
-      default: true,
-    },
-  ]);
+  const useDetectedUrl = await confirmWithEsc({
+    message: 'Use this repository URL?',
+    default: true,
+  });
 
   return {
     value: { useDetected: useDetectedUrl },
@@ -198,25 +190,21 @@ export async function addConfirmUrl(
 export async function addEnterUrl(
   _input: AddEnterUrlInput
 ): Promise<StateResult<AddEnterUrlOutput>> {
-  const { cloneUrl } = await wrappedPrompt<{ cloneUrl: string }>([
-    {
-      type: 'input',
-      name: 'cloneUrl',
-      message: 'Enter the Git repository URL:',
-      validate: (inputUrl: string) => {
-        const validation = validateGitUrl(inputUrl);
-        if (!validation.valid) {
-          return validation.error || 'Invalid URL';
-        }
-        try {
-          parseGitUrl(inputUrl);
-          return true;
-        } catch (error) {
-          return error instanceof Error ? error.message : 'Failed to parse URL';
-        }
-      },
+  const cloneUrl = await inputWithEsc({
+    message: 'Enter the Git repository URL:',
+    validate: (inputUrl: string) => {
+      const validation = validateGitUrl(inputUrl);
+      if (!validation.valid) {
+        return validation.error || 'Invalid URL';
+      }
+      try {
+        parseGitUrl(inputUrl);
+        return true;
+      } catch (error) {
+        return error instanceof Error ? error.message : 'Failed to parse URL';
+      }
     },
-  ]);
+  });
 
   return {
     value: { url: cloneUrl },
@@ -234,36 +222,28 @@ export async function addConfigureBranches(
   // Detect default branch
   const defaultBranch = await detectDefaultBranch(url, rootDir, owner, repo);
 
-  const answers = await wrappedPrompt<{
-    baseBranch: string;
-    targetBranch: string;
-  }>([
-    {
-      type: 'input',
-      name: 'baseBranch',
-      message: 'Enter the remote branch name:',
-      default: defaultBranch,
-      validate: (branchInput: string) => {
-        const branchName = branchInput.replace(/^origin\//, '');
-        const validation = validateBranchName(branchName);
-        return validation.valid || validation.error || 'Invalid branch name';
-      },
+  const baseBranch = await inputWithEsc({
+    message: 'Enter the remote branch name:',
+    default: defaultBranch,
+    validate: (branchInput: string) => {
+      const branchName = branchInput.replace(/^origin\//, '');
+      const validation = validateBranchName(branchName);
+      return validation.valid || validation.error || 'Invalid branch name';
     },
-    {
-      type: 'input',
-      name: 'targetBranch',
-      message: 'Enter the local branch name:',
-      validate: (branchInput: string) => {
-        const validation = validateBranchName(branchInput);
-        return validation.valid || validation.error || 'Invalid branch name';
-      },
+  });
+
+  const targetBranch = await inputWithEsc({
+    message: 'Enter the local branch name:',
+    validate: (branchInput: string) => {
+      const validation = validateBranchName(branchInput);
+      return validation.valid || validation.error || 'Invalid branch name';
     },
-  ]);
+  });
 
   return {
     value: {
-      baseBranch: answers.baseBranch,
-      targetBranch: answers.targetBranch,
+      baseBranch,
+      targetBranch,
       defaultBranch,
     },
   };
@@ -289,14 +269,10 @@ export async function addConfirmClone(
   console.log(`  ${targetPath}`);
   console.log('');
 
-  const { confirm } = await wrappedPrompt<{ confirm: boolean }>([
-    {
-      type: 'confirm',
-      name: 'confirm',
-      message: 'Continue?',
-      default: true,
-    },
-  ]);
+  const confirm = await confirmWithEsc({
+    message: 'Continue?',
+    default: true,
+  });
 
   return {
     value: { confirmed: confirm },
@@ -315,19 +291,17 @@ export async function addSelectCacheOwner(
     throw new Error('No cached owners found');
   }
 
-  const owner = await wrapPromptFunction(() =>
-    search({
-      message: 'Select cached owner:',
-      source: async (term) => {
-        const searchTerm = term || '';
-        return Promise.resolve(
-          availableCacheOwners
-            .filter((o: string) => o.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((o: string) => ({ name: o, value: o }))
-        );
-      },
-    })
-  );
+  const owner = await searchWithEsc<string>({
+    message: 'Select cached owner:',
+    source: async (term: string | undefined) => {
+      const searchTerm = term || '';
+      return Promise.resolve(
+        availableCacheOwners
+          .filter((o: string) => o.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map((o: string) => ({ name: o, value: o }))
+      );
+    },
+  });
 
   return {
     value: { owner },
@@ -346,19 +320,17 @@ export async function addSelectCacheRepo(
     throw new Error('No cached repositories found for this owner');
   }
 
-  const repo = await wrapPromptFunction(() =>
-    search({
-      message: 'Select cached repository:',
-      source: async (term) => {
-        const searchTerm = term || '';
-        return Promise.resolve(
-          availableCacheRepos
-            .filter((r: string) => r.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((r: string) => ({ name: r, value: r }))
-        );
-      },
-    })
-  );
+  const repo = await searchWithEsc<string>({
+    message: 'Select cached repository:',
+    source: async (term: string | undefined) => {
+      const searchTerm = term || '';
+      return Promise.resolve(
+        availableCacheRepos
+          .filter((r: string) => r.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map((r: string) => ({ name: r, value: r }))
+      );
+    },
+  });
 
   return {
     value: { repo },

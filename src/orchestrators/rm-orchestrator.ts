@@ -13,6 +13,7 @@ import {
   rmSelectOrg,
   rmSelectRepo,
 } from '../state/rm-states.js';
+import { EscapeCancelError } from '../types/index.js';
 import { parsePathArg } from '../utils/arg-parser.js';
 import type { Logger } from '../utils/logger.js';
 
@@ -106,6 +107,16 @@ export async function executeRemoveCommand(
       branches: [branch],
     };
   } catch (error) {
+    // EscapeCancelError should propagate to CLI for menu navigation
+    if (error instanceof EscapeCancelError) {
+      throw error;
+    }
+
+    // ExitPromptError should propagate to CLI for immediate exit
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+      throw error;
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error(`Failed to remove: ${errorMessage}`);
     return { success: false, error: errorMessage };
@@ -220,6 +231,16 @@ export async function executeRemoveCommandInteractive(
       branches: selectedBranches,
     };
   } catch (error) {
+    // EscapeCancelError should propagate to CLI for menu navigation
+    if (error instanceof EscapeCancelError) {
+      throw error;
+    }
+
+    // ExitPromptError should propagate to CLI for immediate exit
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+      throw error;
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     if (logger) {
       logger.error(`Failed to remove: ${errorMessage}`);

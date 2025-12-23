@@ -21,7 +21,7 @@ import {
   addSelectOwner,
   addSelectRepo,
 } from '../state/add-states.js';
-import type { CloneResult } from '../types/index.js';
+import { type CloneResult, EscapeCancelError } from '../types/index.js';
 import type { Logger } from '../utils/logger.js';
 import { sanitizeBranchName } from '../utils/validators.js';
 
@@ -90,6 +90,16 @@ export async function executeAddCommand(
       cloneResult,
     };
   } catch (error) {
+    // EscapeCancelError should propagate to CLI for menu navigation
+    if (error instanceof EscapeCancelError) {
+      throw error;
+    }
+
+    // ExitPromptError should propagate to CLI for immediate exit
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+      throw error;
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error(`Failed to clone: ${errorMessage}`);
     return { success: false, error: errorMessage };
@@ -322,6 +332,16 @@ export async function executeAddCommandInteractive(
       cloneResult,
     };
   } catch (error) {
+    // EscapeCancelError should propagate to CLI for menu navigation
+    if (error instanceof EscapeCancelError) {
+      throw error;
+    }
+
+    // ExitPromptError should propagate to CLI for immediate exit
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+      throw error;
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     if (logger) {
       logger.error(`Failed to clone: ${errorMessage}`);
