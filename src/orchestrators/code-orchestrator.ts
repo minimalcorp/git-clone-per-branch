@@ -1,5 +1,5 @@
 /**
- * Orchestrator for the 'open' command
+ * Orchestrator for the 'code' command
  * Handles both direct execution (all args provided) and interactive mode
  */
 
@@ -7,26 +7,19 @@ import path from 'path';
 import { openInVSCode } from '../core/editor.js';
 import { scanRepositories } from '../core/repository-scanner.js';
 import { openSelectBranch, openSelectOrg, openSelectRepo } from '../state/open-states.js';
-import { EscapeCancelError } from '../types/index.js';
+import { EscapeCancelError, type CodeResult } from '../types/index.js';
 import { parsePathArg } from '../utils/arg-parser.js';
 import type { Logger } from '../utils/logger.js';
 
-export interface OpenResult {
-  success: boolean;
-  targetPath?: string;
-  vscodeOpened?: boolean; // true if VSCode successfully opened, false if unavailable
-  error?: string;
-}
-
 /**
- * Execute open command with direct path (non-interactive)
- * Used when user provides complete path: gcpb open org/repo/branch
+ * Execute code command with direct path (non-interactive)
+ * Used when user provides complete path: gcpb code org/repo/branch
  */
-export async function executeOpenCommand(
+export async function executeCodeCommand(
   rootDir: string,
   pathArg: string,
   logger: Logger
-): Promise<OpenResult> {
+): Promise<CodeResult> {
   try {
     const parsed = parsePathArg(pathArg);
 
@@ -98,14 +91,14 @@ export async function executeOpenCommand(
 }
 
 /**
- * Execute open command interactively (prompts for missing information)
+ * Execute code command interactively (prompts for missing information)
  * Used when user provides no args or partial args
  */
-export async function executeOpenCommandInteractive(
+export async function executeCodeCommandInteractive(
   rootDir: string,
   pathArg?: string,
   logger?: Logger
-): Promise<OpenResult> {
+): Promise<CodeResult> {
   try {
     // Parse partial path if provided
     const parsed = parsePathArg(pathArg);

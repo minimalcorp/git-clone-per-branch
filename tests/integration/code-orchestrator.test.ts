@@ -1,8 +1,8 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import {
-  executeOpenCommand,
-  executeOpenCommandInteractive,
-} from '../../src/orchestrators/open-orchestrator.js';
+  executeCodeCommand,
+  executeCodeCommandInteractive,
+} from '../../src/orchestrators/code-orchestrator.js';
 import type { Logger } from '../../src/utils/logger.js';
 
 // Mock all dependencies
@@ -14,7 +14,7 @@ import { scanRepositories } from '../../src/core/repository-scanner.js';
 import { openSelectOrg, openSelectRepo, openSelectBranch } from '../../src/state/open-states.js';
 import { openInVSCode } from '../../src/core/editor.js';
 
-describe('open-orchestrator', () => {
+describe('code-orchestrator', () => {
   const mockLogger: Logger = {
     info: vi.fn(),
     success: vi.fn(),
@@ -27,7 +27,7 @@ describe('open-orchestrator', () => {
     vi.resetAllMocks();
   });
 
-  describe('executeOpenCommand (direct mode)', () => {
+  describe('executeCodeCommand (direct mode)', () => {
     test('should open repository when complete path provided', async () => {
       const repositories = [
         {
@@ -41,7 +41,7 @@ describe('open-orchestrator', () => {
       vi.mocked(scanRepositories).mockResolvedValue(repositories);
       vi.mocked(openInVSCode).mockResolvedValue(true);
 
-      const result = await executeOpenCommand('/root', 'org1/repo1/main', mockLogger);
+      const result = await executeCodeCommand('/root', 'org1/repo1/main', mockLogger);
 
       expect(result.success).toBe(true);
       expect(result.targetPath).toBe('/root/org1/repo1/main');
@@ -50,7 +50,7 @@ describe('open-orchestrator', () => {
     });
 
     test('should return error when path is incomplete', async () => {
-      const result = await executeOpenCommand('/root', 'org1/repo1', mockLogger);
+      const result = await executeCodeCommand('/root', 'org1/repo1', mockLogger);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Incomplete path');
@@ -60,7 +60,7 @@ describe('open-orchestrator', () => {
     test('should return error when repository not found', async () => {
       vi.mocked(scanRepositories).mockResolvedValue([]);
 
-      const result = await executeOpenCommand('/root', 'org1/repo1/main', mockLogger);
+      const result = await executeCodeCommand('/root', 'org1/repo1/main', mockLogger);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
@@ -78,7 +78,7 @@ describe('open-orchestrator', () => {
 
       vi.mocked(scanRepositories).mockResolvedValue(repositories);
 
-      const result = await executeOpenCommand('/root', 'org1/repo1/nonexistent', mockLogger);
+      const result = await executeCodeCommand('/root', 'org1/repo1/nonexistent', mockLogger);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
@@ -98,7 +98,7 @@ describe('open-orchestrator', () => {
       vi.mocked(scanRepositories).mockResolvedValue(repositories);
       vi.mocked(openInVSCode).mockResolvedValue(false);
 
-      const result = await executeOpenCommand('/root', 'org1/repo1/main', mockLogger);
+      const result = await executeCodeCommand('/root', 'org1/repo1/main', mockLogger);
 
       expect(result.success).toBe(true);
       expect(result.vscodeOpened).toBe(false);
@@ -107,7 +107,7 @@ describe('open-orchestrator', () => {
     });
   });
 
-  describe('executeOpenCommandInteractive (REPL mode)', () => {
+  describe('executeCodeCommandInteractive (REPL mode)', () => {
     test('should prompt for all selections when no args provided', async () => {
       const repositories = [
         {
@@ -124,7 +124,7 @@ describe('open-orchestrator', () => {
       vi.mocked(openSelectBranch).mockResolvedValue({ value: { branch: 'main' } });
       vi.mocked(openInVSCode).mockResolvedValue(true);
 
-      const result = await executeOpenCommandInteractive('/root', undefined, mockLogger);
+      const result = await executeCodeCommandInteractive('/root', undefined, mockLogger);
 
       expect(result.success).toBe(true);
       expect(openSelectOrg).toHaveBeenCalledWith({
@@ -158,7 +158,7 @@ describe('open-orchestrator', () => {
       vi.mocked(openSelectBranch).mockResolvedValue({ value: { branch: 'main' } });
       vi.mocked(openInVSCode).mockResolvedValue(true);
 
-      const result = await executeOpenCommandInteractive('/root', 'org1', mockLogger);
+      const result = await executeCodeCommandInteractive('/root', 'org1', mockLogger);
 
       expect(result.success).toBe(true);
       expect(openSelectOrg).toHaveBeenCalledWith({
@@ -183,7 +183,7 @@ describe('open-orchestrator', () => {
       vi.mocked(openSelectBranch).mockResolvedValue({ value: { branch: 'main' } });
       vi.mocked(openInVSCode).mockResolvedValue(true);
 
-      const result = await executeOpenCommandInteractive('/root', 'org1/repo1', mockLogger);
+      const result = await executeCodeCommandInteractive('/root', 'org1/repo1', mockLogger);
 
       expect(result.success).toBe(true);
       expect(openSelectOrg).toHaveBeenCalledWith({
@@ -200,7 +200,7 @@ describe('open-orchestrator', () => {
     test('should return error when no repositories found', async () => {
       vi.mocked(scanRepositories).mockResolvedValue([]);
 
-      const result = await executeOpenCommandInteractive('/root', undefined, mockLogger);
+      const result = await executeCodeCommandInteractive('/root', undefined, mockLogger);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('No repositories found');
@@ -223,7 +223,7 @@ describe('open-orchestrator', () => {
       vi.mocked(openSelectBranch).mockResolvedValue({ value: { branch: 'main' } });
       vi.mocked(openInVSCode).mockResolvedValue(true);
 
-      const result = await executeOpenCommandInteractive('/root');
+      const result = await executeCodeCommandInteractive('/root');
 
       expect(result.success).toBe(true);
       // Should not throw error when logger is undefined
@@ -245,7 +245,7 @@ describe('open-orchestrator', () => {
       vi.mocked(openSelectBranch).mockResolvedValue({ value: { branch: 'main' } });
       vi.mocked(openInVSCode).mockResolvedValue(false);
 
-      const result = await executeOpenCommandInteractive('/root', undefined, mockLogger);
+      const result = await executeCodeCommandInteractive('/root', undefined, mockLogger);
 
       expect(result.success).toBe(true);
       expect(result.vscodeOpened).toBe(false);
