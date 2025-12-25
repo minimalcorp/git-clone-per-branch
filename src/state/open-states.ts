@@ -5,6 +5,7 @@
  */
 
 import { selectWithEsc } from '../utils/inquirer-helpers.js';
+import chalk from 'chalk';
 import type {
   OpenSelectBranchInput,
   OpenSelectBranchOutput,
@@ -26,6 +27,7 @@ export async function openSelectOrg(
   // If preselected org is provided and valid, skip prompt
   const orgs = [...new Set(repositories.map((r) => r.owner))];
   if (preselectedOrg && orgs.includes(preselectedOrg)) {
+    console.log(chalk.green('✓') + ' Organization: ' + chalk.cyan(preselectedOrg));
     return {
       value: { org: preselectedOrg },
     };
@@ -49,6 +51,8 @@ export async function openSelectOrg(
     })),
   });
 
+  console.log(chalk.green('✓') + ' Organization: ' + chalk.cyan(org));
+
   return {
     value: { org },
   };
@@ -67,6 +71,7 @@ export async function openSelectRepo(
 
   // If preselected repo is provided and valid, skip prompt
   if (preselectedRepo && orgRepos.some((r) => r.repo === preselectedRepo)) {
+    console.log(chalk.green('✓') + ' Repository: ' + chalk.cyan(preselectedRepo));
     return {
       value: { repo: preselectedRepo },
     };
@@ -84,6 +89,8 @@ export async function openSelectRepo(
     })),
   });
 
+  console.log(chalk.green('✓') + ' Repository: ' + chalk.cyan(repo));
+
   return {
     value: { repo },
   };
@@ -99,6 +106,7 @@ export async function openSelectBranch(
 
   // If preselected branch is provided and valid, skip prompt
   if (preselectedBranch && branches.includes(preselectedBranch)) {
+    console.log(chalk.green('✓') + ' Branch: ' + chalk.cyan(preselectedBranch));
     return {
       value: { branch: preselectedBranch },
     };
@@ -112,6 +120,8 @@ export async function openSelectBranch(
     message: 'Select branch to open:',
     choices: branches.map((b) => ({ name: b, value: b })),
   });
+
+  console.log(chalk.green('✓') + ' Branch: ' + chalk.cyan(selectedBranch));
 
   return {
     value: { branch: selectedBranch },
