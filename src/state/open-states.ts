@@ -1,5 +1,6 @@
 /**
- * State functions for the 'open' command
+ * State functions for selecting organization, repository, and branch
+ * Used by code and terminal commands
  * Each state is an independent function with explicit parameters
  */
 

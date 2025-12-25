@@ -2,7 +2,8 @@ import { Command } from 'commander';
 import { search } from '@inquirer/prompts';
 import { executeAddCommandInteractive } from '../orchestrators/add-orchestrator.js';
 import { executeRemoveCommandInteractive } from '../orchestrators/rm-orchestrator.js';
-import { executeOpenCommandInteractive } from '../orchestrators/open-orchestrator.js';
+import { executeCodeCommandInteractive } from '../orchestrators/code-orchestrator.js';
+import { executeTerminalCommandInteractive } from '../orchestrators/terminal-orchestrator.js';
 import { handleEditorOpening } from '../core/editor.js';
 import { EscapeCancelError } from '../types/index.js';
 import { Logger } from '../utils/logger.js';
@@ -161,9 +162,9 @@ program
     }
   });
 
-// open command
+// code command
 program
-  .command('open [path]')
+  .command('code [path]')
   .description('Open a cloned repository branch in VSCode')
   .action(async (targetPath?: string) => {
     try {
@@ -175,8 +176,38 @@ program
         process.exit(1);
       }
 
-      // Execute open command with orchestrator
-      const result = await executeOpenCommandInteractive(rootDir, targetPath, logger);
+      // Execute code command with orchestrator
+      const result = await executeCodeCommandInteractive(rootDir, targetPath, logger);
+
+      if (!result.success) {
+        process.exit(1);
+      }
+    } catch (error) {
+      if (isCancellationError(error)) {
+        terminalManager.exitWithMessage('ℹ Goodbye!');
+        process.exit(0);
+      }
+      handleError(error, logger);
+      process.exit(1);
+    }
+  });
+
+// terminal command
+program
+  .command('terminal [path]')
+  .description('Open a cloned repository branch in system terminal')
+  .action(async (targetPath?: string) => {
+    try {
+      // Find root directory
+      const rootDir = await findRoot();
+      if (!rootDir) {
+        logger.error('No .gcpb configuration found');
+        logger.info('Run "gcpb init" to initialize');
+        process.exit(1);
+      }
+
+      // Execute terminal command with orchestrator
+      const result = await executeTerminalCommandInteractive(rootDir, targetPath, logger);
 
       if (!result.success) {
         process.exit(1);
@@ -233,9 +264,14 @@ async function runInteractiveMode(): Promise<void> {
               description: 'Remove existing branches',
             },
             {
-              name: 'open - Open a branch in VSCode',
-              value: 'open',
-              description: 'Open branch in editor',
+              name: 'code - Open a branch in VSCode',
+              value: 'code',
+              description: 'Open branch in VSCode',
+            },
+            {
+              name: 'terminal - Open a branch in terminal',
+              value: 'terminal',
+              description: 'Open branch in terminal',
             },
             { name: 'Exit', value: 'exit', description: 'Exit interactive mode' },
           ]
@@ -377,17 +413,31 @@ async function runInteractiveMode(): Promise<void> {
           break;
         }
 
-        case 'open': {
+        case 'code': {
           // Find root directory
-          const openRootDir = await findRoot();
-          if (!openRootDir) {
+          const codeRootDir = await findRoot();
+          if (!codeRootDir) {
             logger.error('No .gcpb configuration found');
             logger.info('Run init first');
             break;
           }
 
-          // Execute open command with orchestrator
-          await executeOpenCommandInteractive(openRootDir, undefined, logger);
+          // Execute code command with orchestrator
+          await executeCodeCommandInteractive(codeRootDir, undefined, logger);
+          break;
+        }
+
+        case 'terminal': {
+          // Find root directory
+          const terminalRootDir = await findRoot();
+          if (!terminalRootDir) {
+            logger.error('No .gcpb configuration found');
+            logger.info('Run init first');
+            break;
+          }
+
+          // Execute terminal command with orchestrator
+          await executeTerminalCommandInteractive(terminalRootDir, undefined, logger);
           break;
         }
       }

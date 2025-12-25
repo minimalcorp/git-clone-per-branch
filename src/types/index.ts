@@ -33,6 +33,24 @@ export interface VSCodeOptions {
   targetPath: string;
 }
 
+export interface TerminalOptions {
+  targetPath: string;
+}
+
+export interface CodeResult {
+  success: boolean;
+  targetPath?: string;
+  vscodeOpened?: boolean;
+  error?: string;
+}
+
+export interface TerminalResult {
+  success: boolean;
+  targetPath?: string;
+  terminalOpened?: boolean;
+  error?: string;
+}
+
 export class GCPBError extends Error {
   constructor(
     message: string,
