@@ -139,12 +139,12 @@ describe('cache-manager', () => {
   });
 
   describe('updateCache', () => {
-    test('should fetch with prune and tags', async () => {
+    test('should fetch with prune and prune-tags from origin', async () => {
       mockGit.fetch.mockResolvedValue(undefined);
 
       await updateCache('/cache/path');
 
-      expect(mockGit.fetch).toHaveBeenCalledWith(['--prune', '--tags']);
+      expect(mockGit.fetch).toHaveBeenCalledWith(['origin', '--prune', '--prune-tags']);
     });
   });
 
