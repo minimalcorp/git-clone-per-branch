@@ -90,8 +90,11 @@ export async function createCache(options: CacheOptions): Promise<void> {
 export async function updateCache(cachePath: string): Promise<void> {
   const git = simpleGit({ baseDir: cachePath });
 
-  // Fetch all refs with prune to remove deleted branches
-  await git.fetch(['--prune', '--tags']);
+  // Fetch all refs from origin with prune to remove deleted branches and tags
+  // --prune: Remove remote-tracking refs that no longer exist on remote
+  // --prune-tags: Remove local tags that no longer exist on remote
+  // For mirror repositories, this ensures the cache stays in sync with the remote
+  await git.fetch(['origin', '--prune', '--prune-tags']);
 }
 
 /**
